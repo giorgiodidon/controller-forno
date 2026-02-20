@@ -1,0 +1,126 @@
+"""
+PATCH per app.py - Aggiornamento v3.0.3
+Aggiungere queste modifiche al file app.py esistente
+"""
+
+# ==================== MODIFICA 1: IMPORT ====================
+# Aggiungere dopo la riga:
+# from core import PIDController, SafetyMonitor, DataLogger
+
+from core.autotuner import RelayAutotuner
+
+
+# ==================== MODIFICA 2: INIZIALIZZAZIONE ====================
+# Aggiungere dopo la riga:
+# logger = DataLogger()
+
+autotuner = RelayAutotuner(test_temperature=500)
+
+
+# ==================== MODIFICA 3: NUOVE ROUTES ====================
+# Aggiungere PRIMA della sezione "# ===== CLEANUP ====="
+
+# ===== ROUTES AUTOTUNING =====
+
+@app.route('/autotuning')
+def autotuning_page():
+    """Pagina autotuning PID"""
+    return render_template('autotuning.html')
+
+
+@app.route('/api/autotuning/start', methods=['POST'])
+def start_autotuning():
+    """Avvia test autotuning"""
+    try:
+        data = request.json or {}
+        temperature = data.get('temperature', 500)
+        
+        autotuner.test_temperature = temperature
+        autotuner.setpoint = temperature
+        autotuner.start()
+        
+        notifications.send(
+            "🎯 Autotuning Avviato",
+            f"Test PID a {temperature}°C in corso...",
+            priority="default",
+            tags=["gear"]
+        )
+        
+        return jsonify({'success': True, 'message': 'Autotuning avviato'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/autotuning/stop', methods=['POST'])
+def stop_autotuning():
+    """Ferma test autotuning"""
+    try:
+        autotuner.stop()
+        return jsonify({'success': True, 'message': 'Autotuning fermato'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/autotuning/status')
+def get_autotuning_status():
+    """Stato corrente autotuning"""
+    return jsonify(autotuner.get_status())
+
+
+@app.route('/api/autotuning/results')
+def get_autotuning_results():
+    """Risultati finali autotuning"""
+    results = autotuner.get_results()
+    if results:
+        return jsonify(results)
+    else:
+        return jsonify({'error': 'Test non completato'}), 404
+
+
+@app.route('/api/autotuning/chart_data')
+def get_autotuning_chart_data():
+    """Dati per grafico oscillazioni"""
+    return jsonify(autotuner.get_chart_data())
+
+
+@app.route('/api/pid/apply', methods=['POST'])
+def apply_pid():
+    """Applica parametri PID al controller"""
+    try:
+        data = request.json
+        kp = float(data.get('Kp'))
+        ki = float(data.get('Ki'))
+        kd = float(data.get('Kd'))
+        
+        pid.set_tunings(kp, ki, kd)
+        
+        notifications.send(
+            "⚙️ PID Aggiornato",
+            f"Nuovi parametri: Kp={kp:.4f}, Ki={ki:.6f}, Kd={kd:.2f}",
+            priority="default",
+            tags=["gear"]
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': 'PID applicato',
+            'tunings': pid.get_tunings()
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+# ==================== MODIFICA 4: TEMPERATURE MONITOR ====================
+# Nella funzione temperature_monitor_thread(), aggiungere DOPO:
+# safety_result = safety.check_all(...)
+
+        # Controllo autotuning
+        if autotuner.is_running:
+            valve_pos = autotuner.compute_valve_position(temperature_data['hot'])
+            if valve_pos is not None:
+                actuators.set_valve_position(valve_pos)
+
+
+# ==================== FINE MODIFICHE ====================

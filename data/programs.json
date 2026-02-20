@@ -1,0 +1,24 @@
+{
+  "prova1": {
+    "name": "prova1",
+    "ramps": [
+      {
+        "rate": 100,
+        "target": 200,
+        "hold": 0,
+        "time": 108,
+        "rampTime": 108
+      },
+      {
+        "rate": 150,
+        "target": 1100,
+        "hold": 10,
+        "time": 370,
+        "rampTime": 360
+      }
+    ],
+    "created": "2026-02-18T09:39:24.473Z",
+    "totalTime": 478,
+    "maxTemp": 1100
+  }
+}

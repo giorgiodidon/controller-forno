@@ -1,0 +1,11 @@
+"""
+PATCH per core/__init__.py - Aggiornamento v3.0.3
+Sostituire il contenuto con questo
+"""
+
+from .pid_controller import PIDController
+from .safety_monitor import SafetyMonitor
+from .data_logger import DataLogger
+from .autotuner import RelayAutotuner
+
+__all__ = ['PIDController', 'SafetyMonitor', 'DataLogger', 'RelayAutotuner']

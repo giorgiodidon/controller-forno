@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+<title>Forno Ceramica v3.0 - Mobile</title>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+/* ===== VARIABILI CSS ===== */
+:root {
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #2a2a2a;
+  --bg-tertiary: #333;
+  --bg-input: #3a3a3a;
+  --accent-hot: #ff6b6b;
+  --accent-cold: #4ecdc4;
+  --accent-delta: #9370db;
+  --accent-green: #32cd32;
+  --accent-orange: #ff8c00;
+  --accent-blue: #4169e1;
+  --text-primary: #eee;
+  --text-secondary: #aaa;
+  --text-muted: #888;
+  --border-color: #555;
+  --warning: #ff9e6d;
+  --danger: #8b0000;
+  --danger-hover: #b22222;
+}
+
+/* ===== RESET & BASE ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  padding: 10px;
+  line-height: 1.5;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ===== TIPOGRAFIA ===== */
+h1 {
+  margin-bottom: 10px;
+  color: var(--accent-hot);
+  font-size: clamp(20px, 5vw, 28px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+h2 {
+  font-size: clamp(18px, 4.5vw, 24px);
+  margin-bottom: 12px;
+}
+
+h3 {
+  font-size: clamp(16px, 4vw, 20px);
+  margin: 0;
+}
+
+.version {
+  color: var(--text-secondary);
+  font-size: clamp(12px, 3.5vw, 14px);
+  margin-left: 5px;
+}
+
+/* ===== PANNELLI ===== */
+.panel {
+  background: var(--bg-secondary);
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  transition: transform 0.2s;
+}
+
+/* ===== TEMPERATURE - GRIGLIA RESPONSIVE ===== */
+.temp-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.temp-card {
+  background: var(--bg-tertiary);
+  padding: 16px 12px;
+  border-radius: 12px;
+  text-align: center;
+  border-left: 5px solid;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.temp-card:active {
+  transform: scale(0.98);
+}
+
+.temp-card.hot { border-left-color: var(--accent-hot); }
+.temp-card.cold { border-left-color: var(--accent-cold); }
+.temp-card.delta { border-left-color: var(--accent-delta); }
+
+.temp-label {
+  color: var(--text-secondary);
+  font-size: clamp(12px, 3.5vw, 14px);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.temp-value {
+  font-size: clamp(28px, 8vw, 42px);
+  font-weight: bold;
+  margin: 8px 0 4px;
+  line-height: 1;
+}
+
+.temp-unit {
+  color: var(--text-muted);
+  font-size: clamp(14px, 4vw, 18px);
+}
+
+/* ===== COOLING RATE BADGE ===== */
+.cooling-badge {
+  display: inline-block;
+  background: rgba(78, 205, 196, 0.2);
+  color: var(--accent-cold);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: clamp(11px, 3vw, 13px);
+  font-weight: bold;
+  margin-top: 8px;
+  border: 1px solid var(--accent-cold);
+}
+
+.cooling-badge.warning {
+  background: rgba(255, 158, 109, 0.2);
+  color: var(--warning);
+  border-color: var(--warning);
+}
+
+/* ===== STATUS BAR ===== */
+.status-bar {
+  background: var(--bg-tertiary);
+  padding: 12px 15px;
+  border-radius: 10px;
+  margin-top: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: clamp(13px, 3.8vw, 15px);
+}
+
+.status-led {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-led.on {
+  background: var(--accent-green);
+  box-shadow: 0 0 10px var(--accent-green);
+  animation: pulse 2s infinite;
+}
+
+.status-led.off {
+  background: #ff4444;
+  box-shadow: 0 0 10px #ff4444;
+}
+
+.status-led.wait {
+  background: #ffaa00;
+  box-shadow: 0 0 10px #ffaa00;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+/* ===== TABELLE RESPONSIVE ===== */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 10px;
+  border-radius: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+  font-size: clamp(13px, 3.5vw, 14px);
+}
+
+th, td {
+  border-bottom: 1px solid #444;
+  padding: 12px 8px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+th {
+  background: var(--bg-tertiary);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* ===== FORM ELEMENTI ===== */
+input, select, button {
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: clamp(14px, 4vw, 16px);
+  font-family: inherit;
+  transition: all 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type="number"] {
+  width: 100%;
+  min-width: 80px;
+  padding: 12px 8px;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input:focus, select:focus {
+  outline: 2px solid var(--accent-hot);
+  border-color: var(--accent-hot);
+}
+
+button {
+  font-weight: 600;
+  cursor: pointer;
+  padding: 12px 16px;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+button:active {
+  transform: scale(0.97);
+  background: #555;
+}
+
+/* ===== LAYOUT FLESSIBILE ===== */
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.controls button {
+  flex: 1 1 calc(50% - 5px);
+  min-width: 140px;
+}
+
+/* ===== PROGRAMMA INFO ===== */
+.program-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: clamp(13px, 3.8vw, 14px);
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  padding: 12px;
+  border-radius: 8px;
+}
+
+/* ===== TEMPO TOTALE ===== */
+.totalTime {
+  margin-top: 15px;
+  text-align: right;
+  font-weight: bold;
+  font-size: clamp(15px, 4.2vw, 18px);
+  color: var(--accent-cold);
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+/* ===== WARNING ===== */
+.warning {
+  color: var(--warning);
+  font-size: clamp(12px, 3.5vw, 13px);
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(255,158,109,0.1);
+  border-radius: 6px;
+  border-left: 4px solid var(--warning);
+}
+
+/* ===== GRAFICO RESPONSIVE ===== */
+.canvas-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+  padding-left: 45px;
+  box-sizing: border-box;
+  margin-top: 15px;
+}
+
+@media (max-width: 480px) {
+  .canvas-container {
+    height: 250px;
+    padding-left: 35px;
+  }
+}
+
+canvas {
+  background: #1a1a1a;
+  border-radius: 10px;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ===== STATISTICHE GRID ===== */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+  padding: 5px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 15px 8px;
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+  transition: transform 0.2s;
+}
+
+.stat-item:active {
+  transform: scale(0.98);
+}
+
+.stat-value {
+  font-size: clamp(20px, 6vw, 26px);
+  font-weight: bold;
+  color: var(--accent-cold);
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+/* ===== CHART INFO ===== */
+.chart-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 15px;
+  font-size: clamp(11px, 3.2vw, 12px);
+  color: var(--text-muted);
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+/* ===== BOTTONI COLORATI ===== */
+button[style*="background:#2e8b57"] { background: #2e8b57; }
+button[style*="background:#ff8c00"] { background: #ff8c00; }
+button[style*="background:#4169e1"] { background: #4169e1; }
+button[style*="background:#32cd32"] { background: #32cd32; }
+button[style*="background:#8b0000"] { background: #8b0000; }
+button[style*="background:#6a5acd"] { background: #6a5acd; }
+button[style*="background:#9370db"] { background: #9370db; }
+button[style*="background:#20b2aa"] { background: #20b2aa; }
+
+/* ===== DROPDOWN RESPONSIVE ===== */
+select {
+  width: 100%;
+  max-width: 100%;
+  padding: 12px 14px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='white'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px;
+  padding-right: 40px;
+}
+
+/* ===== MEDIA QUERIES ===== */
+@media (max-width: 768px) {
+  body { padding: 8px; }
+  
+  .panel { padding: 12px; }
+  
+  .temp-panel {
+    grid-template-columns: 1fr;
+  }
+  
+  .temp-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+    padding: 12px 16px;
+  }
+  
+  .temp-label {
+    margin-bottom: 0;
+    font-size: 14px;
+  }
+  
+  .temp-value {
+    font-size: 28px;
+    margin: 0 10px 0 0;
+  }
+  
+  .temp-unit {
+    font-size: 16px;
+  }
+  
+  .status-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .status-bar button {
+    width: 100%;
+  }
+  
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .row label {
+    margin-bottom: 5px;
+  }
+  
+  .row input, .row select {
+    width: 100%;
+  }
+  
+  .controls {
+    width: 100%;
+  }
+  
+  .controls button {
+    flex: 1 1 100%;
+  }
+  
+  .stats {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .temp-card {
+    flex-wrap: wrap;
+  }
+  
+  .program-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .version {
+    display: block;
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* ===== UTILITY ===== */
+.hide-on-mobile {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .hide-on-mobile {
+    display: initial;
+  }
+}
+
+/* ===== STAMPA ===== */
+@media print {
+  body { background: white; color: black; }
+  .panel { background: white; border: 1px solid #ccc; }
+  button { display: none; }
+}
+
+/* ===== TOUCH OPTIMIZATION ===== */
+button, 
+.temp-card, 
+.stat-item,
+select,
+input[type="checkbox"] {
+  touch-action: manipulation;
+}
+
+/* ===== SCROLLBAR PERSONALIZZATA ===== */
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+</style>
+</head>
+
+<body>
+
+<h1>
+  🔥 Forno Ceramica 
+  <span class="version">v3.0 Mobile</span>
+</h1>
+
+<!-- PANEL TEMPERATURE REALI -->
+<div class="panel">
+  <h2>🌡️ Temperature</h2>
+  <div class="temp-panel">
+    <div class="temp-card hot">
+      <span class="temp-label">Termocoppia</span>
+      <span class="temp-value" id="temp-hot">--.--</span>
+      <span class="temp-unit">°C</span>
+    </div>
+    <div class="temp-card cold">
+      <span class="temp-label">Ambiente</span>
+      <span class="temp-value" id="temp-cold">--.--</span>
+      <span class="temp-unit">°C</span>
+    </div>
+    <div class="temp-card delta">
+      <span class="temp-label">Differenza</span>
+      <span class="temp-value" id="temp-delta">--.--</span>
+      <span class="temp-unit">°C</span>
+    </div>
+  </div>
+  
+  <!-- Cooling Rate Badge -->
+  <div id="coolingRateContainer" style="margin-top:12px; text-align:center; display:none;">
+    <span class="cooling-badge" id="coolingRateBadge">
+      ❄️ Raffreddamento: -- °C/h
+    </span>
+  </div>
+  
+  <div class="status-bar">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="status-led wait" id="status-led"></span>
+      <span id="status-text">Connessione...</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; width:100%; justify-content:space-between;">
+      <span>⏱️ <span id="update-counter">5</span>s</span>
+      <button onclick="updateTemperatures()" style="background:#32cd32; padding:8px 16px;">🔄 Aggiorna</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL PROGRAMMAZIONE -->
+<div class="panel">
+  <div class="row">
+    <label style="font-weight:bold; width:100%;">📋 Nome programma:</label>
+    <input id="programName" placeholder="es. gres_1200" style="width:100%;">
+    
+    <div class="controls">
+      <button onclick="saveProgram()" style="background:#2e8b57;">💾 Salva</button>
+      <button onclick="resetProgram()" style="background:#ff8c00;">🔄 Nuovo</button>
+      <button onclick="duplicateProgram()" style="background:#9370db;">📋 Duplica</button>
+      <button onclick="goFullscreen()" style="background:#4169e1;">📺 Fullscreen</button>
+      <button onclick="backupPrograms()" class="backup-btn">📤 Backup</button>
+      <button onclick="restoreBackup()" class="restore-btn">📥 Ripristina</button>
+    </div>
+  </div>
+  
+  <div class="row">
+    <label style="font-weight:bold; width:100%;">📂 Carica programma:</label>
+    <div style="display:flex; gap:10px; width:100%; flex-wrap:wrap;">
+      <select id="programList" onchange="loadProgram()" style="flex:1; min-width:200px;">
+        <option value="">-- Seleziona --</option>
+      </select>
+      <button onclick="deleteProgram()" class="delete-btn" style="flex:0 0 auto;">🗑️ Elimina</button>
+      <button onclick="exportSingleProgram()" style="background:#20b2aa; flex:0 0 auto;">📄 Esporta</button>
+    </div>
+  </div>
+  
+  <div class="program-info">
+    <div>💾 Programmi salvati: <span id="savedCount">0</span></div>
+    <div id="lastSaved"></div>
+  </div>
+</div>
+
+<!-- PANEL RAMP DI COTTURA -->
+<div class="panel">
+  <div class="row">
+    <h3 style="display:flex; align-items:center; gap:8px; width:100%;">
+      📊 Ramp di Cottura
+      <button onclick="addRamp()" style="background:#32cd32; margin-left:auto;">➕ Aggiungi</button>
+    </h3>
+  </div>
+  
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Rate<br><small>C/h</small></th>
+          <th>Target<br><small>C</small></th>
+          <th>Hold<br><small>min</small></th>
+          <th>Tempo<br><small>min</small></th>
+          <th>Azioni</th>
+        </tr>
+      </thead>
+      <tbody id="rampTable"></tbody>
+    </table>
+  </div>
+  
+  <div id="totalTime" class="totalTime"></div>
+  <div class="warning">
+    ⚠️ Temp.iniziale: 20°C • Rate minimo: 10°C/h
+  </div>
+</div>
+
+<!-- PANEL GRAFICO -->
+<div class="panel">
+  <div class="row">
+    <h3 style="display:flex; align-items:center; gap:8px; width:100%;">
+      📈 Curva di Cottura
+      <button onclick="toggleGrid()" style="background:#555; margin-left:auto;" id="gridToggle">
+        🔲 Griglia
+      </button>
+    </h3>
+  </div>
+  
+  <div class="canvas-container">
+    <canvas id="chart"></canvas>
+    <div id="customGrid" style="position:absolute; top:0; left:0; pointer-events:none;"></div>
+  </div>
+  
+  <div class="chart-info">
+    <div>🔴 Riscaldamento • 🔵 Hold (tratteggiato)</div>
+    <div>🟢 Temperatura attuale</div>
+    <div>👆 Tocca i punti per dettagli</div>
+  </div>
+  
+  <!-- Pulsante Export Grafico -->
+  <div style="margin-top:15px;">
+    <button onclick="exportChartImage()" style="background:#6a5acd; width:100%;">
+      📸 Esporta Grafico PNG
+    </button>
+  </div>
+  
+  <div class="stats">
+    <div class="stat-item">
+      <div class="stat-value" id="rampCount">0</div>
+      <div>Ramp totali</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="maxTemp">0</div>
+      <div>Temp. max</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="totalHours">00:00</div>
+      <div>Tempo tot</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="totalHold">0</div>
+      <div>Hold tot</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== VARIABILI GLOBALI ====================
+let ramps = [];
+let chart = null;
+let currentProgramName = "";
+let showGrid = true;
+let updateInterval = null;
+let counter = 5;
+let countdownInterval = null;
+
+// Execution logging
+let executionLog = [];
+let isExecuting = false;
+
+// ==================== TEMPERATURE REALI ====================
+function updateTemperatures() {
+    fetch('/api/temperatures')
+        .then(response => response.json())
+        .then(data => {
+            // Aggiorna valori
+            document.getElementById('temp-hot').textContent = data.hot.toFixed(1);
+            document.getElementById('temp-cold').textContent = data.cold.toFixed(1);
+            document.getElementById('temp-delta').textContent = data.delta.toFixed(1);
+            
+            // Aggiorna stato
+            const led = document.getElementById('status-led');
+            const text = document.getElementById('status-text');
+            
+            if (data.status === 'connected') {
+                led.className = 'status-led on';
+                text.textContent = `Sensore connesso - ${data.hot.toFixed(1)}°C`;
+            } else {
+                led.className = 'status-led off';
+                text.textContent = 'Errore sensore';
+            }
+            
+            // Mostra velocità raffreddamento se < 700°C
+            const coolingContainer = document.getElementById('coolingRateContainer');
+            const coolingBadge = document.getElementById('coolingRateBadge');
+            
+            if (data.hot < 700 && data.hot > 50) {
+                coolingContainer.style.display = 'block';
+                const rate = data.cooling_rate || 0;
+                coolingBadge.textContent = `❄️ Raffreddamento: ${rate.toFixed(1)} °C/h`;
+                
+                // Colora badge se rate troppo veloce
+                if (Math.abs(rate) > 300) {
+                    coolingBadge.className = 'cooling-badge warning';
+                } else {
+                    coolingBadge.className = 'cooling-badge';
+                }
+            } else {
+                coolingContainer.style.display = 'none';
+            }
+            
+            counter = 5;
+            document.getElementById('update-counter').textContent = counter;
+            
+            // Aggiorna punto temperatura attuale sul grafico
+            if (chart) {
+                chart.data.datasets[1].data = [{x: 0, y: data.cold}];
+                chart.update();
+            }
+        })
+        .catch(error => {
+            console.error('Errore:', error);
+            document.getElementById('status-led').className = 'status-led off';
+            document.getElementById('status-text').textContent = 'Errore connessione';
+        });
+}
+
+function startTemperatureUpdates() {
+    updateTemperatures();
+    if (updateInterval) clearInterval(updateInterval);
+    updateInterval = setInterval(updateTemperatures, 5000);
+    
+    if (countdownInterval) clearInterval(countdownInterval);
+    countdownInterval = setInterval(() => {
+        counter--;
+        if (counter < 0) counter = 5;
+        document.getElementById('update-counter').textContent = counter;
+    }, 1000);
+}
+
+// ==================== CALCOLI ====================
+function computeTimes() {
+    let prevTemp = 20;
+    ramps.forEach(r => {
+        const delta = Math.abs(r.target - prevTemp);
+        const safeRate = Math.max(Number(r.rate) || 10, 10);
+        const rampMin = (delta / safeRate) * 60;
+        r.time = Math.round(rampMin + (Number(r.hold) || 0));
+        r.rampTime = Math.round(rampMin);
+        prevTemp = r.target;
+    });
+}
+
+function totalProgramMinutes() {
+    return ramps.reduce((sum, r) => sum + (r.time || 0), 0);
+}
+
+function totalHoldMinutes() {
+    return ramps.reduce((sum, r) => sum + (Number(r.hold) || 0), 0);
+}
+
+function formatHM(mins) {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function buildCurve() {
+    let data = [];
+    let t = 0;
+    let temp = 20;
+    
+    ramps.forEach(r => {
+        const delta = r.target - temp;
+        const safeRate = Math.max(Number(r.rate) || 10, 10);
+        const rampMin = Math.abs(delta / safeRate) * 60;
+        
+        data.push({x: t, y: Math.round(temp * 10) / 10});
+        t += rampMin;
+        data.push({x: Math.round(t * 10) / 10, y: Math.round(r.target * 10) / 10});
+        
+        if (r.hold > 0) {
+            t += Number(r.hold);
+            data.push({x: Math.round(t * 10) / 10, y: Math.round(r.target * 10) / 10});
+        }
+        temp = r.target;
+    });
+    
+    return data;
+}
+
+// ==================== GRAFICO ====================
+function toggleGrid() {
+    showGrid = !showGrid;
+    document.getElementById('gridToggle').textContent = showGrid ? '🔲 Griglia' : '🔳 Griglia';
+    if (chart) drawCustomGrid(chart);
+}
+
+function drawCustomGrid(chartInstance) {
+    const gridContainer = document.getElementById('customGrid');
+    if (!showGrid || !chartInstance) {
+        gridContainer.innerHTML = '';
+        return;
+    }
+    
+    const canvas = document.getElementById('chart');
+    const chartArea = chartInstance.chartArea;
+    const xAxis = chartInstance.scales.x;
+    const yAxis = chartInstance.scales.y;
+    
+    gridContainer.innerHTML = '';
+    gridContainer.style.position = 'absolute';
+    gridContainer.style.left = '0';
+    gridContainer.style.top = '0';
+    gridContainer.style.width = canvas.width + 'px';
+    gridContainer.style.height = canvas.height + 'px';
+    gridContainer.style.pointerEvents = 'none';
+    
+    // Linee orizzontali ogni 100°C
+    for (let temp = 100; temp <= yAxis.max; temp += 100) {
+        const y = yAxis.getPixelForValue(temp);
+        if (y >= chartArea.top && y <= chartArea.bottom) {
+            const line = document.createElement('div');
+            line.style.position = 'absolute';
+            line.style.left = chartArea.left + 'px';
+            line.style.top = y + 'px';
+            line.style.width = (chartArea.right - chartArea.left) + 'px';
+            line.style.height = '1px';
+            line.style.background = 'rgba(255,255,255,0.1)';
+            line.style.borderTop = '1px dashed rgba(255,255,255,0.1)';
+            gridContainer.appendChild(line);
+            
+            const label = document.createElement('div');
+            label.style.position = 'absolute';
+            label.style.left = (chartArea.left - 40) + 'px';
+            label.style.top = (y - 8) + 'px';
+            label.style.color = '#888';
+            label.style.fontSize = '10px';
+            label.style.width = '35px';
+            label.style.textAlign = 'right';
+            label.textContent = temp + '°C';
+            gridContainer.appendChild(label);
+        }
+    }
+    
+    // Linee verticali ogni 30 min
+    for (let time = 30; time <= xAxis.max; time += 30) {
+        const x = xAxis.getPixelForValue(time);
+        if (x >= chartArea.left && x <= chartArea.right) {
+            const line = document.createElement('div');
+            line.style.position = 'absolute';
+            line.style.left = x + 'px';
+            line.style.top = chartArea.top + 'px';
+            line.style.width = '1px';
+            line.style.height = (chartArea.bottom - chartArea.top) + 'px';
+            line.style.background = time % 60 === 0 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)';
+            gridContainer.appendChild(line);
+            
+            if (time % 60 === 0) {
+                const label = document.createElement('div');
+                label.style.position = 'absolute';
+                label.style.left = x + 'px';
+                label.style.top = (chartArea.bottom + 5) + 'px';
+                label.style.color = '#888';
+                label.style.fontSize = '10px';
+                label.style.transform = 'translateX(-50%)';
+                label.textContent = (time/60) + 'h';
+                gridContainer.appendChild(label);
+            }
+        }
+    }
+}
+
+// ==================== RENDER ====================
+function render() {
+    computeTimes();
+    const tb = document.getElementById("rampTable");
+    tb.innerHTML = "";
+    
+    ramps.forEach((r, i) => {
+        tb.innerHTML += `
+            <tr>
+                <td><strong>${i+1}</strong></td>
+                <td><input type="number" min="10" value="${r.rate || 100}" step="10"
+                    onchange="ramps[${i}].rate=Math.max(10, this.value); render()" 
+                    style="width:80px;" inputmode="numeric"></td>
+                <td><input type="number" min="0" value="${r.target || 200}" step="10"
+                    onchange="ramps[${i}].target=Math.max(0, this.value); render()"
+                    style="width:80px;" inputmode="numeric"></td>
+                <td><input type="number" min="0" value="${r.hold || 0}" step="5"
+                    onchange="ramps[${i}].hold=Math.max(0, this.value); render()"
+                    style="width:70px;" inputmode="numeric"></td>
+                <td><strong>${r.time || 0}</strong><br><small>+${r.hold || 0}</small></td>
+                <td><button onclick="removeRamp(${i})" style="background:#8b0000; padding:8px;">✖</button></td>
+            </tr>`;
+    });
+    
+    const tot = totalProgramMinutes();
+    const holdTot = totalHoldMinutes();
+    
+    document.getElementById("totalTime").innerHTML = 
+        `<div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>⏱️ Tempo totale:</span>
+            <span style="color:#4ecdc4; font-size:20px; font-weight:bold;">${formatHM(tot)}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:5px;">
+            <span>📊 ${tot} min totali</span>
+            <span>⏸️ ${holdTot} min hold</span>
+        </div>`;
+    
+    document.getElementById("rampCount").textContent = ramps.length;
+    document.getElementById("totalHours").textContent = formatHM(tot);
+    document.getElementById("totalHold").textContent = holdTot;
+    
+    const maxTemp = Math.max(...ramps.map(r => Number(r.target) || 0), 20);
+    document.getElementById("maxTemp").textContent = maxTemp;
+    
+    updateChart();
+}
+
+function updateChart() {
+    const data = buildCurve();
+    const maxTemp = Math.max(...ramps.map(r => Number(r.target) || 0), 20);
+    const tot = totalProgramMinutes();
+    const currentTemp = parseFloat(document.getElementById('temp-cold').textContent) || 20;
+    
+    const ctx = document.getElementById('chart').getContext('2d');
+    
+    if (!chart) {
+        chart = new Chart(ctx, {
+            type: "line",
+            data: {
+                datasets: [
+                    {
+                        label: "Programma",
+                        data: data,
+                        borderColor: "#ff6b6b",
+                        backgroundColor: "rgba(255, 107, 107, 0.05)",
+                        tension: 0,
+                        fill: true,
+                        borderWidth: 3,
+                        pointRadius: 3,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#ff6b6b',
+                        pointBorderColor: '#fff',
+                        segment: {
+                            borderColor: function(ctx) {
+                                return ctx.p0.parsed.y === ctx.p1.parsed.y ? '#4ecdc4' : '#ff6b6b';
+                            },
+                            borderWidth: function(ctx) {
+                                return ctx.p0.parsed.y === ctx.p1.parsed.y ? 2 : 3;
+                            },
+                            borderDash: function(ctx) {
+                                return ctx.p0.parsed.y === ctx.p1.parsed.y ? [5, 3] : [];
+                            }
+                        }
+                    },
+                    {
+                        label: "Temperatura Attuale",
+                        data: [{x: 0, y: currentTemp}],
+                        borderColor: "#32cd32",
+                        pointRadius: 8,
+                        pointHoverRadius: 10,
+                        pointBackgroundColor: '#32cd32',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        showLine: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: { top: 10, bottom: 10, left: 5, right: 5 }
+                },
+                plugins: {
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.9)',
+                        titleColor: '#ff6b6b',
+                        bodyColor: '#eee',
+                        borderColor: '#ff6b6b',
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            label: function(ctx) {
+                                return `${ctx.dataset.label}: ${ctx.parsed.y}°C`;
+                            }
+                        }
+                    },
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        type: "linear",
+                        title: { 
+                            display: true, 
+                            text: "Tempo (min)", 
+                            color: '#eee',
+                            font: { size: 12, weight: 'bold' }
+                        },
+                        min: 0,
+                        max: Math.max(tot * 1.1, 60),
+                        ticks: { display: false, stepSize: 30 },
+                        grid: { display: false }
+                    },
+                    y: {
+                        title: { 
+                            display: true, 
+                            text: "Temperatura (°C)", 
+                            color: '#eee',
+                            font: { size: 12, weight: 'bold' }
+                        },
+                        min: 0,
+                        suggestedMax: Math.max(maxTemp, currentTemp) + 50,
+                        ticks: { display: false, stepSize: 100 },
+                        grid: { display: false }
+                    }
+                }
+            },
+            plugins: [{
+                afterDraw: function(chart) {
+                    drawCustomGrid(chart);
+                }
+            }]
+        });
+    } else {
+        chart.data.datasets[0].data = data;
+        chart.data.datasets[1].data = [{x: 0, y: currentTemp}];
+        chart.options.scales.x.max = Math.max(tot * 1.1, 60);
+        chart.options.scales.y.suggestedMax = Math.max(maxTemp, currentTemp) + 50;
+        chart.update();
+        drawCustomGrid(chart);
+    }
+}
+
+// ==================== GESTIONE RAMP ====================
+function addRamp() {
+    const lastTarget = ramps.length > 0 ? ramps[ramps.length-1].target : 200;
+    ramps.push({
+        rate: 100,
+        target: lastTarget,
+        hold: 0,
+        time: 0,
+        rampTime: 0
+    });
+    render();
+}
+
+function removeRamp(i) {
+    if (ramps.length <= 1) {
+        alert("Deve rimanere almeno una ramp");
+        return;
+    }
+    ramps.splice(i, 1);
+    render();
+}
+
+function resetProgram() {
+    if (ramps.length > 0 && !confirm('Cancellare il programma corrente?')) return;
+    ramps = [];
+    currentProgramName = "";
+    document.getElementById('programName').value = "";
+    document.getElementById('programList').value = "";
+    addRamp();
+}
+
+// ==================== GESTIONE PROGRAMMI ====================
+function saveProgram() {
+    const name = document.getElementById('programName').value.trim();
+    if (!name) { alert('Inserisci nome programma'); return; }
+    if (ramps.length === 0) { alert('Aggiungi almeno una ramp'); return; }
+    
+    computeTimes();
+    
+    const program = {
+        name: name,
+        ramps: JSON.parse(JSON.stringify(ramps)),
+        created: new Date().toISOString(),
+        totalTime: totalProgramMinutes(),
+        maxTemp: Math.max(...ramps.map(r => Number(r.target)), 20)
+    };
+    
+    fetch('/api/programs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(program)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            currentProgramName = name;
+            updateProgramList();
+            document.getElementById('lastSaved').innerHTML = 
+                `✅ Salvato: ${new Date().toLocaleTimeString()}`;
+            alert(`Programma "${name}" salvato`);
+        } else {
+            alert('Errore salvataggio: ' + (data.error || ''));
+        }
+    });
+}
+
+function loadProgram() {
+    const name = document.getElementById('programList').value;
+    if (!name) return;
+    
+    fetch('/api/programs')
+        .then(r => r.json())
+        .then(programs => {
+            const program = programs[name];
+            if (program) {
+                ramps = JSON.parse(JSON.stringify(program.ramps));
+                currentProgramName = name;
+                document.getElementById('programName').value = name;
+                render();
+                
+                if (program.created) {
+                    const date = new Date(program.created);
+                    document.getElementById('lastSaved').innerHTML = 
+                        `📂 Caricato: ${date.toLocaleString()}`;
+                }
+            }
+        });
+}
+
+function duplicateProgram() {
+    const name = document.getElementById('programList').value;
+    if (!name) { 
+        alert('Seleziona un programma da duplicare'); 
+        return; 
+    }
+    
+    fetch('/api/programs')
+        .then(r => r.json())
+        .then(programs => {
+            const program = programs[name];
+            if (program) {
+                // Clone programma
+                ramps = JSON.parse(JSON.stringify(program.ramps));
+                
+                // Genera nuovo nome
+                let newName = name + '_copia';
+                let counter = 1;
+                while (programs[newName]) {
+                    newName = `${name}_copia${counter}`;
+                    counter++;
+                }
+                
+                currentProgramName = newName;
+                document.getElementById('programName').value = newName;
+                render();
+                
+                document.getElementById('lastSaved').innerHTML = 
+                    `📋 Duplicato da: ${name}`;
+                
+                alert(`✅ Programma duplicato: "${newName}"\nModifica e salva quando pronto.`);
+            }
+        });
+}
+
+function updateProgramList() {
+    fetch('/api/programs')
+        .then(r => r.json())
+        .then(programs => {
+            const select = document.getElementById('programList');
+            const currentVal = select.value;
+            
+            select.innerHTML = '<option value="">-- Seleziona programma --</option>';
+            
+            const names = Object.keys(programs).sort();
+            document.getElementById('savedCount').textContent = names.length;
+            
+            names.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+            
+            if (currentVal && names.includes(currentVal)) {
+                select.value = currentVal;
+            }
+        });
+}
+
+function deleteProgram() {
+    const name = document.getElementById('programList').value;
+    if (!name) { alert('Seleziona un programma'); return; }
+    if (!confirm(`Eliminare il programma "${name}"?`)) return;
+    
+    fetch(`/api/programs/${name}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                if (currentProgramName === name) {
+                    currentProgramName = "";
+                    document.getElementById('programName').value = "";
+                }
+                updateProgramList();
+                alert(`Programma "${name}" eliminato`);
+            }
+        });
+}
+
+// ==================== BACKUP LOCALI ====================
+function backupPrograms() {
+    const saved = JSON.parse(localStorage.getItem('ceramicaPrograms') || '{}');
+    if (Object.keys(saved).length === 0) {
+        alert('Nessun programma salvato');
+        return;
+    }
+    
+    const dataStr = JSON.stringify(saved, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    const fileName = `backup_forno_${new Date().toISOString().split('T')[0]}.json`;
+    
+    const link = document.createElement('a');
+    link.href = dataUri;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    alert(`Backup eseguito - ${Object.keys(saved).length} programmi`);
+}
+
+function restoreBackup() {
+    if (!confirm('Attenzione: sovrascrive i programmi attuali. Continuare?')) return;
+    
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = function() {
+            try {
+                const data = JSON.parse(reader.result);
+                localStorage.setItem('ceramicaPrograms', JSON.stringify(data));
+                updateProgramList();
+                alert(`Ripristinati ${Object.keys(data).length} programmi`);
+            } catch(err) {
+                alert('Errore file: ' + err.message);
+            }
+        };
+        reader.readAsText(file);
+    };
+    document.body.appendChild(input);
+    input.click();
+    document.body.removeChild(input);
+}
+
+function exportSingleProgram() {
+    if (!currentProgramName) {
+        alert('Carica o crea un programma prima di esportare');
+        return;
+    }
+    
+    const saved = JSON.parse(localStorage.getItem('ceramicaPrograms') || '{}');
+    const program = saved[currentProgramName];
+    
+    if (program) {
+        const dataStr = JSON.stringify(program, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+        const fileName = `programma_${currentProgramName}_${new Date().toISOString().split('T')[0]}.json`;
+        
+        const link = document.createElement('a');
+        link.href = dataUri;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
+// ==================== EXPORT GRAFICO PNG ====================
+function exportChartImage() {
+    if (!chart || ramps.length === 0) {
+        alert('Nessun grafico da esportare');
+        return;
+    }
+    
+    // Crea canvas temporaneo ad alta risoluzione
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = 1920;
+    exportCanvas.height = 1080;
+    
+    const ctx = exportCanvas.getContext('2d');
+    
+    // Sfondo nero
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+    
+    // Titolo
+    ctx.fillStyle = '#ff6b6b';
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    const title = currentProgramName || 'Programma Forno';
+    ctx.fillText(title, exportCanvas.width / 2, 60);
+    
+    // Info programma
+    ctx.fillStyle = '#aaa';
+    ctx.font = '24px Arial';
+    const maxTemp = Math.max(...ramps.map(r => Number(r.target)), 20);
+    const totalTime = totalProgramMinutes();
+    const info = `${ramps.length} rampe • Max ${maxTemp}°C • ${formatHM(totalTime)} • ${new Date().toLocaleDateString()}`;
+    ctx.fillText(info, exportCanvas.width / 2, 100);
+    
+    // Crea grafico export
+    const data = buildCurve();
+    const tot = totalProgramMinutes();
+    
+    const exportChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [
+                {
+                    label: 'Programma',
+                    data: data,
+                    borderColor: '#ff6b6b',
+                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                    tension: 0,
+                    fill: true,
+                    borderWidth: 4,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#ff6b6b',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    segment: {
+                        borderColor: function(ctx) {
+                            return ctx.p0.parsed.y === ctx.p1.parsed.y ? '#4ecdc4' : '#ff6b6b';
+                        },
+                        borderWidth: function(ctx) {
+                            return ctx.p0.parsed.y === ctx.p1.parsed.y ? 3 : 4;
+                        },
+                        borderDash: function(ctx) {
+                            return ctx.p0.parsed.y === ctx.p1.parsed.y ? [10, 5] : [];
+                        }
+                    }
+                }
+            ]
+        },
+        options: {
+            responsive: false,
+            animation: false,
+            layout: {
+                padding: { top: 140, bottom: 40, left: 80, right: 80 }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false }
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    title: {
+                        display: true,
+                        text: 'Tempo (minuti)',
+                        color: '#eee',
+                        font: { size: 20, weight: 'bold' }
+                    },
+                    min: 0,
+                    max: Math.max(tot * 1.1, 60),
+                    ticks: {
+                        color: '#aaa',
+                        font: { size: 16 },
+                        stepSize: 60
+                    },
+                    grid: {
+                        color: 'rgba(255,255,255,0.1)',
+                        lineWidth: 1
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Temperatura (°C)',
+                        color: '#eee',
+                        font: { size: 20, weight: 'bold' }
+                    },
+                    min: 0,
+                    suggestedMax: maxTemp + 100,
+                    ticks: {
+                        color: '#aaa',
+                        font: { size: 16 },
+                        stepSize: 100
+                    },
+                    grid: {
+                        color: 'rgba(255,255,255,0.1)',
+                        lineWidth: 1
+                    }
+                }
+            }
+        }
+    });
+    
+    // Aspetta rendering
+    setTimeout(() => {
+        // Converti in PNG
+        const link = document.createElement('a');
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        link.download = `grafico_${currentProgramName || 'programma'}_${timestamp}.png`;
+        link.href = exportCanvas.toDataURL('image/png');
+        link.click();
+        
+        // Cleanup
+        exportChart.destroy();
+        
+        alert('✅ Grafico esportato!');
+    }, 500);
+}
+
+// ==================== UTILITY ====================
+function goFullscreen() {
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) elem.requestFullscreen();
+    else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+    else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
+}
+
+// ==================== INIZIALIZZAZIONE ====================
+document.addEventListener('DOMContentLoaded', function() {
+    startTemperatureUpdates();
+    updateProgramList();
+    if (ramps.length === 0) addRamp();
+    
+    // Carica programmi da localStorage per backup
+    fetch('/api/programs')
+        .then(r => r.json())
+        .then(programs => {
+            if (Object.keys(programs).length > 0) {
+                localStorage.setItem('ceramicaPrograms', JSON.stringify(programs));
+            }
+        });
+    
+    console.log('Forno Ceramica v3.0 Mobile - Avviato');
+    console.log('Notifiche push: ntfy.sh/forno_giorgio');
+    
+    // Previeni zoom involontario su input
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+        input.addEventListener('touchstart', function() {
+            this.style.fontSize = '16px';
+        });
+    });
+});
+</script>
+
+</body>
+</html>

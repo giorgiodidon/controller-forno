@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Forno Ceramica v3.1 - Controller Principale
-Architettura modulare con PID Adattivo
+Forno Ceramica v3.0 - Controller Principale
+Architettura modulare con separazione hardware/core/services
 """
 
 import time
@@ -14,9 +14,6 @@ from config import *
 from hardware import SensorManager, ActuatorManager
 from core import PIDController, SafetyMonitor, DataLogger, Watchdog
 from core.autotuner import RelayAutotuner
-from core.pid_adaptive import AdaptivePIDManager
-from core.pid_analyzer import PIDAnalyzer
-from core.pid_learner import PIDLearner
 from services import NotificationService, StorageService
 from utils import calculate_cooling_rate, format_time
 
@@ -38,11 +35,6 @@ pid = PIDController()
 safety = SafetyMonitor()
 logger = DataLogger()
 autotuner = RelayAutotuner(test_temperature=500)
-
-# PID Adattivo
-adaptive = AdaptivePIDManager(pid)
-analyzer = PIDAnalyzer()
-learner = PIDLearner(adaptive.table)
 
 # Services
 notifications = NotificationService()
@@ -158,50 +150,15 @@ def temperature_monitor_thread():
             if autotuner.phase == 'complete':
                 if not hasattr(autotuner, '_completion_notified'):
                     notifications.send(
-                        "🎯 Autotuning Completato",
+                        "? Autotuning Completato",
                         f"PID ottimizzato calcolato!\nKp={autotuner.Kp:.4f}, Ki={autotuner.Ki:.6f}\nApplica risultati nella pagina autotuning.",
                         priority="high",
                         tags=["white_check_mark", "gear"]
                     )
-                    
-                    # Aggiorna tabella adattiva con risultati autotuning
-                    adaptive.table.set_base_from_autotuning(
-                        autotuner.Kp, autotuner.Ki, autotuner.Kd
-                    )
-                    
                     autotuner._completion_notified = True
                 
                 # Ferma autotuning
                 autotuner.is_running = False
-        
-        # Controllo PID durante esecuzione programma
-        if program_state['running'] and not autotuner.is_running:
-            # Aggiorna PID adattivo in base alla temperatura corrente
-            adaptive.update_tunings(temperature_data['hot'])
-            
-            # Calcola output PID
-            valve_output = pid.compute(
-                program_state['current_setpoint'],
-                temperature_data['hot']
-            )
-            actuators.set_valve_position(valve_output)
-            
-            # Log temperatura con dati PID interni
-            if logger.is_logging:
-                logger.log_temperature(
-                    temperature_data['hot'],
-                    program_state['current_setpoint'],
-                    valve_output,
-                    temperature_data['cooling_rate'],
-                    pid_data={
-                        'kp': pid.kp,
-                        'ki': pid.ki,
-                        'kd': pid.kd,
-                        'error': pid.last_error,
-                        'integral': pid.integral,
-                        'output': pid.last_output
-                    }
-                )
                 
         time.sleep(SENSOR_UPDATE_INTERVAL)
 
@@ -231,7 +188,6 @@ def get_status():
         'sensors': sensors.get_diagnostics(),
         'actuators': actuators.get_status(),
         'pid': pid.get_status(),
-        'adaptive': adaptive.get_status(),
         'safety': safety.get_status(),
         'watchdog': watchdog.get_status(),
         'notifications': notifications.get_status(),
@@ -263,7 +219,7 @@ def save_program():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/programs/<n>', methods=['GET'])
+@app.route('/api/programs/<name>', methods=['GET'])
 def get_program(n):
     """Ottieni singolo programma"""
     program = storage.get_program(n)
@@ -273,7 +229,7 @@ def get_program(n):
         return jsonify({'error': 'Programma non trovato'}), 404
 
 
-@app.route('/api/programs/<n>', methods=['DELETE'])
+@app.route('/api/programs/<name>', methods=['DELETE'])
 def delete_program(n):
     """Elimina programma"""
     success = storage.delete_program(n)
@@ -410,6 +366,8 @@ def log_event():
         
         # Invia notifiche per eventi importanti
         if event_type == 'ramp_complete':
+            # Parse messaggio per dati rampa
+            # Esempio: "Rampa 2/5 → 800°C completata"
             parts = message.split('→')
             if len(parts) == 2:
                 ramp_info = parts[0].strip()
@@ -417,7 +375,7 @@ def log_event():
                 notifications.notify_ramp_complete(0, 0, temp_info.replace('°C completata', ''))
         
         elif event_type == 'hold_start':
-            notifications.notify_hold_start(0, 0)
+            notifications.notify_hold_start(0, 0)  # Parse da message
         
         elif event_type == 'cooling':
             temp = temperature_data['hot']
@@ -495,7 +453,6 @@ def reset_watchdog():
         'success': True,
         'message': 'Watchdog e safety resettati'
     })
-
 
 # ===== ROUTES AUTOTUNING =====
 
@@ -587,151 +544,6 @@ def apply_pid():
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
-
-
-# ===== ROUTES PID ADATTIVO =====
-
-@app.route('/api/adaptive/status')
-def get_adaptive_status():
-    """Stato PID adattivo"""
-    return jsonify(adaptive.get_status())
-
-
-@app.route('/api/adaptive/enable', methods=['POST'])
-def enable_adaptive():
-    """Abilita PID adattivo"""
-    adaptive.enable()
-    return jsonify({'success': True, 'enabled': True})
-
-
-@app.route('/api/adaptive/disable', methods=['POST'])
-def disable_adaptive():
-    """Disabilita PID adattivo (torna a PID fisso)"""
-    adaptive.disable()
-    return jsonify({'success': True, 'enabled': False})
-
-
-@app.route('/api/adaptive/table')
-def get_adaptive_table():
-    """Tabella completa parametri per fascia"""
-    return jsonify(adaptive.table.get_table_summary())
-
-
-@app.route('/api/adaptive/rollback', methods=['POST'])
-def rollback_adaptive():
-    """Rollback parametri a valori base"""
-    data = request.json or {}
-    band = data.get('band', None)
-    
-    if band is not None:
-        adaptive.table.rollback_band(int(band))
-        return jsonify({'success': True, 'message': f'Fascia {band}°C resettata'})
-    else:
-        adaptive.table.rollback_all()
-        return jsonify({'success': True, 'message': 'Tutte le fasce resettate'})
-
-
-# ===== ROUTES ANALISI =====
-
-@app.route('/api/analysis/run', methods=['POST'])
-def run_analysis():
-    """Analizza log cotture e genera suggerimenti"""
-    try:
-        data = request.json or {}
-        filepath = data.get('filepath', None)
-        
-        if filepath:
-            result = analyzer.analyze_firing(filepath)
-        else:
-            results = analyzer.analyze_all_logs()
-            if results:
-                result = results[-1]
-            else:
-                return jsonify({'success': False, 'error': 'Nessun log trovato'})
-        
-        if result:
-            learn_result = learner.process_analysis(result)
-            
-            return jsonify({
-                'success': True,
-                'analysis': result.to_dict(),
-                'learning': learn_result
-            })
-        else:
-            return jsonify({'success': False, 'error': 'Analisi fallita'})
-            
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@app.route('/api/analysis/aggregated')
-def get_aggregated_analysis():
-    """Metriche aggregate multi-cottura"""
-    return jsonify(analyzer.get_aggregated_metrics())
-
-
-# ===== ROUTES LEARNER =====
-
-@app.route('/api/learner/status')
-def get_learner_status():
-    """Stato learner"""
-    return jsonify(learner.get_status())
-
-
-@app.route('/api/learner/mode', methods=['POST'])
-def set_learner_mode():
-    """Imposta modalità learner (suggest/auto)"""
-    data = request.json or {}
-    mode = data.get('mode', 'suggest')
-    learner.set_mode(mode)
-    return jsonify({'success': True, 'mode': mode})
-
-
-@app.route('/api/learner/approve', methods=['POST'])
-def approve_suggestions():
-    """Approva suggerimenti in coda"""
-    applied = learner.approve_pending()
-    return jsonify({'success': True, 'applied': applied})
-
-
-@app.route('/api/learner/reject', methods=['POST'])
-def reject_suggestions():
-    """Rifiuta suggerimenti in coda"""
-    rejected = learner.reject_pending()
-    return jsonify({'success': True, 'rejected': rejected})
-
-
-@app.route('/api/learner/learn_all', methods=['POST'])
-def learn_from_all():
-    """Analizza tutti i log e applica apprendimento"""
-    try:
-        analyses = analyzer.analyze_all_logs()
-        
-        if len(analyses) < 2:
-            return jsonify({
-                'success': False,
-                'error': f'Servono almeno 2 cotture (disponibili: {len(analyses)})'
-            })
-        
-        result = learner.process_all_analyses(analyses)
-        
-        notifications.send(
-            "🧠 PID Learning",
-            f"Analizzate {len(analyses)} cotture.\n"
-            f"Applicati: {result['applied']}, In coda: {result['pending']}",
-            priority="default",
-            tags=["brain"]
-        )
-        
-        return jsonify({
-            'success': True,
-            'firings_analyzed': len(analyses),
-            'learning': result
-        })
-        
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
 
 # ===== CLEANUP =====
 def cleanup():

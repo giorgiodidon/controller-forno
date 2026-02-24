@@ -20,5 +20,18 @@
     "created": "2026-02-18T09:39:24.473Z",
     "totalTime": 478,
     "maxTemp": 1100
+  },
+  "prova2": {
+    "name": "prova2",
+    "ramps": [
+      {
+        "rate": 150,
+        "target": 200,
+        "hold": 10
+      }
+    ],
+    "created": "2026-02-24T10:23:34.446Z",
+    "totalTime": 82,
+    "maxTemp": 200
   }
 }

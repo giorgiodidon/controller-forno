@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1024, initial-scale=1.0">
+<title>Forno Ceramica — Gestione Programmi</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ===== VARIABILI ===== */
+:root {
+  --bg:       #0f0f0f;
+  --panel:    #181818;
+  --panel2:   #1f1f1f;
+  --border:   #272727;
+  --hot:      #ff4d2e;
+  --cold:     #3ecfcf;
+  --green:    #39d353;
+  --orange:   #ff9f1c;
+  --blue:     #4a90d9;
+  --purple:   #9b6dff;
+  --muted:    #555;
+  --dim:      #888;
+  --text:     #e4e4e4;
+  --danger-bg:#1a0000;
+  --danger-bd:#7a0000;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html, body {
+  width: 1024px;
+  height: 600px;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  user-select: none;
+}
+
+/* ===== LAYOUT ===== */
+#app {
+  width: 1024px;
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  gap: 5px;
+}
+
+/* ===== HEADER ===== */
+.header {
+  height: 46px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 12px;
+}
+.header-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--dim);
+  flex: 1;
+}
+.header-temp {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--hot);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ===== CORPO ===== */
+.body-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 5px;
+}
+
+/* ===== PANNELLO BASE ===== */
+.pnl {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.pnl-inner { padding: 10px 12px; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+.sec-title {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+/* ===== COLONNA SINISTRA ===== */
+.left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* Sezione programmi */
+.prog-section { flex: 1; min-height: 0; }
+.prog-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  padding-right: 2px;
+}
+.prog-list::-webkit-scrollbar { width: 4px; }
+.prog-list::-webkit-scrollbar-track { background: var(--border); border-radius: 2px; }
+.prog-list::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 2px; }
+
+.prog-item {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 7px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s;
+}
+.prog-item:hover { border-color: #3a3a3a; }
+.prog-item.active { border-color: var(--hot); background: rgba(255,77,46,0.05); }
+.prog-item-left { flex: 1; min-width: 0; }
+.prog-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.prog-item-info { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 2px; }
+.prog-item-actions { display: flex; gap: 4px; flex-shrink: 0; margin-left: 8px; }
+
+/* Nuovo programma */
+.new-prog-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.txt-input {
+  flex: 1;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.txt-input:focus { border-color: var(--hot); }
+
+/* ===== COLONNA DESTRA ===== */
+.right-col { display: flex; flex-direction: column; gap: 5px; }
+
+/* Sezione rampe */
+.ramps-section { flex: 1; min-height: 0; }
+.ramps-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+.prog-editing-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cold);
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.prog-editing-name.empty { color: var(--muted); font-style: italic; }
+
+/* Tabella rampe */
+.ramps-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+.ramps-scroll::-webkit-scrollbar { width: 4px; }
+.ramps-scroll::-webkit-scrollbar-track { background: var(--border); border-radius: 2px; }
+.ramps-scroll::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 2px; }
+
+table.ramps-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+table.ramps-tbl th {
+  text-align: left;
+  padding: 4px 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  z-index: 1;
+}
+table.ramps-tbl td { padding: 4px 6px; vertical-align: middle; }
+table.ramps-tbl tr:nth-child(even) td { background: rgba(255,255,255,0.018); }
+table.ramps-tbl tr:hover td { background: rgba(255,255,255,0.03); }
+
+.num-input {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 4px 6px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  width: 80px;
+  text-align: center;
+  outline: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.num-input:focus { border-color: var(--blue); }
+.ramp-time-cell { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+/* Aggiungi rampa */
+.add-ramp-row {
+  display: flex;
+  gap: 5px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--border);
+  align-items: center;
+  flex-shrink: 0;
+}
+.add-ramp-row .num-input { width: 72px; }
+.add-lbl { font-size: 10px; color: var(--muted); letter-spacing: 1px; }
+
+/* Grafico mini */
+.chart-section { height: 110px; flex-shrink: 0; }
+.chart-section .pnl-inner { padding: 7px 10px 5px; }
+.chart-wrap { flex: 1; position: relative; min-height: 0; }
+#previewChart { position: absolute; top:0; left:0; width:100% !important; height:100% !important; }
+
+/* ===== FOOTER ===== */
+.footer {
+  height: 46px;
+  flex-shrink: 0;
+  display: flex;
+  gap: 5px;
+}
+
+/* ===== PULSANTI ===== */
+button {
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+button:active { opacity: 0.75; }
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+  background: var(--panel2);
+  color: var(--text);
+}
+.btn-sm:hover { border-color: #444; }
+
+.btn-green  { border: 1px solid var(--green)  !important; color: var(--green)  !important; background: rgba(57,211,83,0.05)   !important; }
+.btn-hot    { border: 1px solid var(--hot)    !important; color: var(--hot)    !important; background: rgba(255,77,46,0.06)   !important; }
+.btn-red    { border: 1px solid #7a0000       !important; color: #ff4444       !important; background: rgba(139,0,0,0.08)     !important; }
+.btn-blue   { border: 1px solid var(--blue)   !important; color: var(--blue)   !important; background: rgba(74,144,217,0.06)  !important; }
+.btn-orange { border: 1px solid var(--orange) !important; color: var(--orange) !important; background: rgba(255,159,28,0.06)  !important; }
+.btn-purple { border: 1px solid var(--purple) !important; color: var(--purple) !important; background: rgba(155,109,255,0.06) !important; }
+
+.btn-footer {
+  flex: 1;
+  height: 100%;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--dim);
+}
+.btn-footer:hover { color: var(--text); border-color: #3a3a3a; }
+.btn-footer.primary { border-color: var(--green); color: var(--green); background: rgba(57,211,83,0.05); font-size: 13px; }
+.btn-footer.primary:hover { background: rgba(57,211,83,0.1); }
+
+.btn-page-back {
+  height: 100%;
+  padding: 0 20px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+}
+.btn-page-back:hover { border-color: var(--hot); color: var(--hot); }
+
+/* ===== MODAL ===== */
+#modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 998;
+  justify-content: center;
+  align-items: center;
+}
+#modal-overlay.active { display: flex; }
+.modal-box {
+  background: #1c1c1c;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 28px 32px;
+  min-width: 360px;
+  text-align: center;
+}
+.modal-box h3 { font-size: 18px; margin-bottom: 10px; }
+.modal-box p  { color: var(--dim); font-size: 14px; margin-bottom: 22px; line-height: 1.5; }
+.modal-btns { display: flex; gap: 10px; justify-content: center; }
+.modal-btns button {
+  padding: 10px 28px; border-radius: 6px; border: none;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.btn-confirm-yes { background: #8b0000; color: #fff; }
+.btn-confirm-yes:hover { background: #b22222; }
+.btn-confirm-no  { background: #2a2a2a; color: var(--text); border: 1px solid #444 !important; }
+.btn-confirm-no:hover { background: #333; }
+.btn-confirm-save { background: #1a5c2a; color: var(--green); border: 1px solid var(--green) !important; }
+
+/* Toast */
+#toast {
+  position: fixed;
+  bottom: 20px; left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 13px;
+  color: var(--text);
+  z-index: 999;
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+#toast.show { transform: translateX(-50%) translateY(0); }
+#toast.ok  { border-color: var(--green); color: var(--green); }
+#toast.err { border-color: var(--hot);   color: var(--hot); }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <span class="header-title">⚙ Gestione Programmi</span>
+    <div class="header-temp">
+      <span class="status-dot" id="h-status-dot"></span>
+      🌡 <span id="h-temp">--.-</span>°C
+    </div>
+    <button class="btn-page-back" onclick="goToMonitor()">← Monitoraggio</button>
+  </div>
+
+  <!-- BANNER ESECUZIONE — visibile solo se programma attivo -->
+  <div id="running-banner" style="display:none;
+    background:#1a0800; border:1px solid #7a3800; border-radius:6px;
+    padding:8px 16px; display:none; align-items:center; gap:10px;
+    font-size:12px; color:#ff9f1c; flex-shrink:0;">
+    <span style="font-size:16px;">⚠️</span>
+    <span id="running-banner-text">Programma in esecuzione — modalità sola lettura. Avvio di nuovi programmi disabilitato.</span>
+  </div>
+
+  <!-- CORPO -->
+  <div class="body-grid">
+
+    <!-- COLONNA SINISTRA: Lista programmi -->
+    <div class="left-col">
+
+      <div class="pnl prog-section">
+        <div class="pnl-inner">
+          <div class="sec-title">📋 Programmi salvati — <span id="prog-count">0</span> totali</div>
+          <div class="prog-list" id="prog-list">
+            <!-- popolato da JS -->
+          </div>
+        </div>
+        <div class="new-prog-row">
+          <input class="txt-input" id="new-prog-name" type="text" placeholder="Nome nuovo programma..." maxlength="40">
+          <button class="btn-sm btn-green" onclick="createNewProgram()">+ Nuovo</button>
+        </div>
+      </div>
+
+    </div><!-- /left-col -->
+
+    <!-- COLONNA DESTRA -->
+    <div class="right-col">
+
+      <!-- Rampe -->
+      <div class="pnl ramps-section">
+        <div class="pnl-inner">
+          <div class="ramps-header">
+            <div class="sec-title" style="border:none; margin:0; padding:0;">📐 Rampe —</div>
+            <span class="prog-editing-name empty" id="editing-name">nessun programma selezionato</span>
+            <button class="btn-sm btn-green" style="font-size:12px;" onclick="addRamp()">+ Rampa</button>
+          </div>
+
+          <div class="ramps-scroll">
+            <table class="ramps-tbl">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Vel. (°C/h)</th>
+                  <th>Target (°C)</th>
+                  <th>Hold (min)</th>
+                  <th>Durata</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="ramps-tbody">
+                <tr><td colspan="6" style="color:var(--muted); text-align:center; padding:20px; font-style:italic;">Seleziona o crea un programma</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="add-ramp-row">
+            <span class="add-lbl">Nuova:</span>
+            <input class="num-input" id="nr-rate"   type="number" placeholder="°C/h"   min="10"  step="10"  value="100">
+            <input class="num-input" id="nr-target" type="number" placeholder="°C"     min="0"   step="10"  value="200">
+            <input class="num-input" id="nr-hold"   type="number" placeholder="hold"   min="0"   step="5"   value="0">
+            <button class="btn-sm btn-green" style="padding:5px 12px;" onclick="addRampFromInputs()">↑ Aggiungi</button>
+            <div style="margin-left:auto; font-size:11px; color:var(--muted);">
+              Totale: <span id="total-time" style="color:var(--cold); font-weight:700;">--:--</span>
+              &nbsp;|&nbsp; Max: <span id="max-temp" style="color:var(--hot);">--</span>°C
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grafico anteprima -->
+      <div class="pnl chart-section">
+        <div class="pnl-inner">
+          <div class="sec-title" style="margin-bottom:4px;">📈 Anteprima curva</div>
+          <div class="chart-wrap">
+            <canvas id="previewChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /right-col -->
+
+  </div><!-- /body-grid -->
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <button class="btn-footer primary" onclick="saveProgram()">💾 Salva</button>
+    <button class="btn-footer" onclick="duplicateProgram()">📋 Duplica</button>
+    <button class="btn-footer" onclick="exportSingleProgram()">📤 Esporta JSON</button>
+    <button class="btn-footer" onclick="importProgram()">📥 Importa JSON</button>
+    <button class="btn-footer" style="border-color:var(--purple); color:var(--purple);" onclick="goAutotuning()">🎯 Autotuning PID</button>
+    <button class="btn-footer" style="border-color:var(--hot); color:var(--hot);" onclick="confirmResetProgram()">🔄 Nuovo vuoto</button>
+    <button class="btn-page-back" style="flex:0 0 auto; padding:0 18px;" onclick="goToMonitor()">← Monitor</button>
+  </div>
+
+</div><!-- /app -->
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div class="modal-box">
+    <h3 id="modal-title">Conferma</h3>
+    <p id="modal-msg">Sei sicuro?</p>
+    <div class="modal-btns">
+      <button class="btn-confirm-no"  onclick="closeModal()">Annulla</button>
+      <button class="btn-confirm-yes" id="modal-confirm-btn">Conferma</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ==================== STATO GLOBALE ====================
+let programs        = {};          // tutti i programmi dal server
+let ramps           = [];          // rampe del programma in editing
+let editingName     = '';          // nome programma in editing
+let previewChart    = null;
+let tempInterval    = null;
+let isProgramRunning = false;      // programma in esecuzione sul server
+
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', () => {
+  initPreviewChart();
+  loadAllPrograms();
+  startTempUpdate();
+  checkRunningState();
+  // Ricontrolla lo stato ogni 15s
+  setInterval(checkRunningState, 15000);
+});
+
+// ==================== CONTROLLO ESECUZIONE ====================
+function checkRunningState() {
+  fetch('/api/status')
+    .then(r => r.json())
+    .then(data => {
+      const running = data.program && data.program.running === true;
+      if (running !== isProgramRunning) {
+        isProgramRunning = running;
+        updateRunningUI();
+      }
+    })
+    .catch(() => {});
+}
+
+function updateRunningUI() {
+  const banner = document.getElementById('running-banner');
+  const prog   = isProgramRunning;
+
+  // Banner
+  banner.style.display = prog ? 'flex' : 'none';
+
+  // Aggiorna testo banner se c'è il nome del programma
+  fetch('/api/status').then(r => r.json()).then(data => {
+    const name = data.program?.name || '';
+    if (name) {
+      document.getElementById('running-banner-text').textContent =
+        `⚙ "${name}" in esecuzione — modalità sola lettura. Avvio di nuovi programmi disabilitato.`;
+    }
+  }).catch(() => {});
+
+  // Ri-renderizza la lista per aggiornare i pulsanti Avvia
+  renderProgramList();
+}
+
+// ==================== TEMPERATURA HEADER ====================
+function startTempUpdate() {
+  fetchTemp();
+  tempInterval = setInterval(fetchTemp, 5000);
+}
+
+function fetchTemp() {
+  fetch('/api/temperatures')
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('h-temp').textContent = data.hot.toFixed(1);
+      const dot = document.getElementById('h-status-dot');
+      dot.style.background  = data.status === 'connected' ? 'var(--green)' : '#ff4444';
+      dot.style.boxShadow   = data.status === 'connected' ? '0 0 6px var(--green)' : '0 0 6px #ff4444';
+      dot.style.animation   = data.status === 'connected' ? 'pulse 2s infinite' : 'none';
+    })
+    .catch(() => {});
+}
+
+// ==================== CARICA PROGRAMMI ====================
+function loadAllPrograms() {
+  fetch('/api/programs')
+    .then(r => r.json())
+    .then(data => {
+      programs = data;
+      renderProgramList();
+      restoreLastEditing();   // ripristina programma aperto prima di navigare
+    })
+    .catch(() => showToast('Errore caricamento programmi', 'err'));
+}
+
+function restoreLastEditing() {
+  // Legge l'ultimo programma in editing dal localStorage
+  const saved = localStorage.getItem('kiln_editing_program');
+  if (!saved) return;
+  try {
+    const obj = JSON.parse(saved);
+    const name = obj.name;
+    // Controlla che il programma esista ancora sul server
+    if (name && programs[name]) {
+      loadProgram(name);
+    }
+  } catch(e) {}
+}
+
+function renderProgramList() {
+  const list = document.getElementById('prog-list');
+  const names = Object.keys(programs).sort();
+  document.getElementById('prog-count').textContent = names.length;
+
+  if (names.length === 0) {
+    list.innerHTML = '<div style="color:var(--muted); font-size:12px; padding:12px; text-align:center; font-style:italic;">Nessun programma salvato</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  names.forEach(name => {
+    const p    = programs[name];
+    const maxT = p.maxTemp  || '--';
+    const tot  = p.totalTime ? formatHM(p.totalTime) : '--:--';
+    const nr   = p.ramps ? p.ramps.length : 0;
+
+    const item = document.createElement('div');
+    item.className = 'prog-item' + (name === editingName ? ' active' : '');
+    item.innerHTML = `
+      <div class="prog-item-left">
+        <div class="prog-item-name">${escHtml(name)}</div>
+        <div class="prog-item-info">${nr} rampe · ${tot} · max ${maxT}°C</div>
+      </div>
+      <div class="prog-item-actions">
+        <button class="btn-sm btn-blue"   onclick="loadProgram('${escAttr(name)}'); event.stopPropagation();">Carica</button>
+        <button class="btn-sm btn-green"
+          ${isProgramRunning ? 'disabled style="opacity:0.3;cursor:not-allowed;" title="Programma in esecuzione"' : `onclick="startProgram('${escAttr(name)}'); event.stopPropagation();"`}>▶ Avvia</button>
+        <button class="btn-sm btn-red"    onclick="confirmDeleteProgram('${escAttr(name)}'); event.stopPropagation();">✕</button>
+      </div>`;
+    item.addEventListener('click', () => loadProgram(name));
+    list.appendChild(item);
+  });
+}
+
+// ==================== CARICA / SELEZIONA PROGRAMMA ====================
+function loadProgram(name) {
+  const p = programs[name];
+  if (!p) return;
+
+  editingName = name;
+  ramps = JSON.parse(JSON.stringify(p.ramps || []));
+
+  document.getElementById('editing-name').textContent = name;
+  document.getElementById('editing-name').classList.remove('empty');
+
+  // Salva in localStorage per ripristino al ritorno in gestione
+  // NOTA: kiln_active_program viene scritto SOLO da startProgram (avvio effettivo)
+  localStorage.setItem('kiln_editing_program', JSON.stringify({ name, ramps }));
+
+  renderRampsTable();
+  updatePreviewChart();
+  renderProgramList();   // aggiorna highlight
+}
+
+// ==================== CREA NUOVO PROGRAMMA ====================
+function createNewProgram() {
+  const name = document.getElementById('new-prog-name').value.trim();
+  if (!name) { showToast('Inserisci un nome per il programma', 'err'); return; }
+  if (programs[name]) { showToast('Programma già esistente', 'err'); return; }
+
+  editingName = name;
+  ramps = [{ rate: 100, target: 200, hold: 0 }];
+
+  document.getElementById('editing-name').textContent = name;
+  document.getElementById('editing-name').classList.remove('empty');
+  document.getElementById('new-prog-name').value = '';
+
+  renderRampsTable();
+  updatePreviewChart();
+}
+
+// ==================== RENDER TABELLA RAMPE ====================
+function renderRampsTable() {
+  const tbody = document.getElementById('ramps-tbody');
+  if (ramps.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--muted); text-align:center; padding:16px; font-style:italic;">Nessuna rampa</td></tr>';
+    document.getElementById('total-time').textContent = '--:--';
+    document.getElementById('max-temp').textContent   = '--';
+    return;
+  }
+
+  computeTimes();
+  tbody.innerHTML = '';
+
+  ramps.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--muted); font-weight:600; font-size:11px;">${i+1}</td>
+      <td><input class="num-input" type="number" min="10"  step="10"  value="${r.rate   || 100}"
+          oninput="ramps[${i}].rate=Math.max(10,+this.value||10);computeTimes();updateStats();updatePreviewChart()"></td>
+      <td><input class="num-input" type="number" min="0"   step="10"  value="${r.target || 200}"
+          oninput="ramps[${i}].target=Math.max(0,+this.value||0);computeTimes();updateStats();updatePreviewChart()"></td>
+      <td><input class="num-input" type="number" min="0"   step="5"   value="${r.hold   || 0}"
+          oninput="ramps[${i}].hold=Math.max(0,+this.value||0);computeTimes();updateStats();updatePreviewChart()"></td>
+      <td class="ramp-time-cell" id="rt-${i}">${formatHM(r._time || 0)}</td>
+      <td>
+        <button class="btn-sm btn-red" style="padding:3px 7px;" onclick="confirmRemoveRamp(${i})">✕</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
+  updateStats();
+}
+
+function updateStats() {
+  computeTimes();
+  const tot  = totalProgramMinutes();
+  const maxT = ramps.length ? Math.max(...ramps.map(r => Number(r.target) || 0)) : 0;
+  document.getElementById('total-time').textContent = formatHM(tot);
+  document.getElementById('max-temp').textContent   = maxT || '--';
+
+  // Aggiorna celle durata
+  ramps.forEach((r, i) => {
+    const el = document.getElementById(`rt-${i}`);
+    if (el) el.textContent = formatHM(r._time || 0);
+  });
+}
+
+// ==================== GESTIONE RAMPE ====================
+function addRamp() {
+  if (!editingName) { showToast('Seleziona o crea un programma prima', 'err'); return; }
+  const lastTarget = ramps.length > 0 ? ramps[ramps.length-1].target : 200;
+  ramps.push({ rate: 100, target: lastTarget, hold: 0 });
+  renderRampsTable();
+  updatePreviewChart();
+}
+
+function addRampFromInputs() {
+  if (!editingName) { showToast('Seleziona o crea un programma prima', 'err'); return; }
+  const rate   = Math.max(10, parseInt(document.getElementById('nr-rate').value)   || 100);
+  const target = Math.max(0,  parseInt(document.getElementById('nr-target').value) || 200);
+  const hold   = Math.max(0,  parseInt(document.getElementById('nr-hold').value)   || 0);
+  ramps.push({ rate, target, hold });
+  renderRampsTable();
+  updatePreviewChart();
+}
+
+function confirmRemoveRamp(i) {
+  if (ramps.length <= 1) { showToast('Deve rimanere almeno una rampa', 'err'); return; }
+  showModal(
+    'Rimuovi rampa',
+    `Eliminare la rampa ${i+1} (→ ${ramps[i].target}°C)?`,
+    'Elimina',
+    'btn-confirm-yes',
+    () => { ramps.splice(i, 1); renderRampsTable(); updatePreviewChart(); }
+  );
+}
+
+// ==================== CALCOLI ====================
+function computeTimes() {
+  let prevTemp = 20;
+  ramps.forEach(r => {
+    const delta    = Math.abs(r.target - prevTemp);
+    const safeRate = Math.max(Number(r.rate) || 10, 10);
+    const rampMin  = (delta / safeRate) * 60;
+    r._time   = Math.round(rampMin + (Number(r.hold) || 0));
+    prevTemp  = r.target;
+  });
+}
+
+function totalProgramMinutes() {
+  computeTimes();
+  return ramps.reduce((s, r) => s + (r._time || 0), 0);
+}
+
+function formatHM(mins) {
+  if (!mins || isNaN(mins)) return '00:00';
+  const h = Math.floor(mins / 60);
+  const m = Math.round(mins % 60);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
+// ==================== SALVA ====================
+function saveProgram() {
+  if (!editingName) { showToast('Nessun programma da salvare', 'err'); return; }
+  if (ramps.length === 0) { showToast('Aggiungi almeno una rampa', 'err'); return; }
+
+  computeTimes();
+  const program = {
+    name:      editingName,
+    ramps:     ramps.map(r => ({ rate: r.rate, target: r.target, hold: r.hold })),
+    created:   programs[editingName]?.created || new Date().toISOString(),
+    totalTime: totalProgramMinutes(),
+    maxTemp:   Math.max(...ramps.map(r => Number(r.target) || 0), 0)
+  };
+
+  fetch('/api/programs', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(program)
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      programs[editingName] = program;
+      renderProgramList();
+      showToast(`✅ "${editingName}" salvato`, 'ok');
+    } else {
+      showToast('Errore: ' + (data.error || ''), 'err');
+    }
+  })
+  .catch(() => showToast('Errore comunicazione server', 'err'));
+}
+
+// ==================== AVVIA PROGRAMMA ====================
+function startProgram(name) {
+  const p = programs[name];
+  if (!p) return;
+  if (isProgramRunning) {
+    showToast('Un programma è già in esecuzione', 'err');
+    return;
+  }
+
+  showModal(
+    '▶ Avvia programma',
+    `Avviare il programma "${name}"?\n\nIl forno inizierà immediatamente.`,
+    '▶ Avvia',
+    'btn-confirm-save',
+    () => {
+      fetch('/api/log/start', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ program_name: name, ramps: p.ramps || [] })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success !== false) {
+          localStorage.setItem('kiln_active_program', JSON.stringify({ name, ramps: p.ramps }));
+          localStorage.setItem('kiln_program_start', Date.now().toString());
+          showToast(`▶ "${name}" avviato!`, 'ok');
+          setTimeout(() => goToMonitor(), 1200);
+        } else {
+          showToast('Errore avvio: ' + (data.error || ''), 'err');
+        }
+      })
+      .catch(() => showToast('Errore comunicazione server', 'err'));
+    }
+  );
+}
+
+// ==================== ELIMINA PROGRAMMA ====================
+function confirmDeleteProgram(name) {
+  showModal(
+    '🗑️ Elimina programma',
+    `Eliminare definitivamente il programma\n"${name}"?\n\nQuesta azione non può essere annullata.`,
+    'Elimina',
+    'btn-confirm-yes',
+    () => deleteProgram(name)
+  );
+}
+
+function deleteProgram(name) {
+  fetch(`/api/programs/${encodeURIComponent(name)}`, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        delete programs[name];
+        if (editingName === name) {
+          editingName = '';
+          ramps = [];
+          document.getElementById('editing-name').textContent = 'nessun programma selezionato';
+          document.getElementById('editing-name').classList.add('empty');
+          document.getElementById('ramps-tbody').innerHTML =
+            '<tr><td colspan="6" style="color:var(--muted); text-align:center; padding:20px; font-style:italic;">Seleziona o crea un programma</td></tr>';
+          updatePreviewChart();
+          updateStats();
+        }
+        renderProgramList();
+        showToast(`🗑️ "${name}" eliminato`, 'ok');
+      } else {
+        showToast('Errore eliminazione', 'err');
+      }
+    })
+    .catch(() => showToast('Errore comunicazione server', 'err'));
+}
+
+// ==================== DUPLICA ====================
+function duplicateProgram() {
+  if (!editingName || !programs[editingName]) { showToast('Seleziona un programma', 'err'); return; }
+  const base = editingName;
+  let newName = base + '_copia';
+  let n = 1;
+  while (programs[newName]) { newName = `${base}_copia${n++}`; }
+
+  editingName = newName;
+  ramps = JSON.parse(JSON.stringify(programs[base].ramps || []));
+  document.getElementById('editing-name').textContent = newName;
+  document.getElementById('editing-name').classList.remove('empty');
+
+  renderRampsTable();
+  updatePreviewChart();
+  showToast(`📋 Duplicato come "${newName}" — salva per confermare`, 'ok');
+}
+
+// ==================== RESET ====================
+function confirmResetProgram() {
+  showModal(
+    '🔄 Nuovo programma vuoto',
+    'Creare un nuovo programma?\nLe modifiche non salvate andranno perse.',
+    'Crea nuovo',
+    'btn-confirm-yes',
+    () => {
+      editingName = '';
+      ramps = [];
+      document.getElementById('editing-name').textContent = 'nessun programma selezionato';
+      document.getElementById('editing-name').classList.add('empty');
+      document.getElementById('ramps-tbody').innerHTML =
+        '<tr><td colspan="6" style="color:var(--muted); text-align:center; padding:20px; font-style:italic;">Seleziona o crea un programma</td></tr>';
+      updatePreviewChart();
+      updateStats();
+      renderProgramList();
+      document.getElementById('new-prog-name').focus();
+    }
+  );
+}
+
+// ==================== EXPORT / IMPORT ====================
+function exportSingleProgram() {
+  if (!editingName || !programs[editingName]) { showToast('Seleziona un programma', 'err'); return; }
+  const data = JSON.stringify(programs[editingName], null, 2);
+  const uri  = 'data:application/json;charset=utf-8,' + encodeURIComponent(data);
+  const a    = document.createElement('a');
+  a.href     = uri;
+  a.download = `${editingName}_${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function importProgram() {
+  const input = document.createElement('input');
+  input.type   = 'file';
+  input.accept = '.json';
+  input.onchange = e => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const p = JSON.parse(reader.result);
+        if (!p.name || !p.ramps) { showToast('File non valido', 'err'); return; }
+        programs[p.name] = p;
+        loadProgram(p.name);
+        showToast(`📥 "${p.name}" importato — salva per confermare`, 'ok');
+        renderProgramList();
+      } catch(e) { showToast('Errore lettura file: ' + e.message, 'err'); }
+    };
+    reader.readAsText(e.target.files[0]);
+  };
+  document.body.appendChild(input); input.click(); document.body.removeChild(input);
+}
+
+// ==================== GRAFICO ANTEPRIMA ====================
+function initPreviewChart() {
+  const ctx = document.getElementById('previewChart').getContext('2d');
+  previewChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: 'Curva',
+        data: [],
+        borderColor: '#ff4d2e',
+        backgroundColor: 'rgba(255,77,46,0.04)',
+        borderWidth: 1.5,
+        pointRadius: 1.5,
+        fill: true,
+        tension: 0,
+        segment: {
+          borderColor: ctx => ctx.p0.parsed.y === ctx.p1.parsed.y ? '#ff9f1c' : '#ff4d2e',
+          borderDash:  ctx => ctx.p0.parsed.y === ctx.p1.parsed.y ? [4,3] : [],
+        }
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      layout: { padding: { top: 2, bottom: 2, left: 0, right: 4 } },
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: {
+        x: { type: 'linear', min: 0, ticks: { color: '#333', font: { size: 8 }, maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,0.03)' } },
+        y: { min: 0, ticks: { color: '#333', font: { size: 8 }, maxTicksLimit: 6  }, grid: { color: 'rgba(255,255,255,0.03)' } }
+      }
+    }
+  });
+}
+
+function updatePreviewChart() {
+  if (!previewChart) return;
+  const curve = buildCurve();
+  const tot   = totalProgramMinutes();
+  const maxT  = ramps.length ? Math.max(...ramps.map(r => Number(r.target) || 0), 100) : 100;
+
+  previewChart.data.datasets[0].data = curve;
+  previewChart.options.scales.x.max  = Math.max(tot * 1.08, 60);
+  previewChart.options.scales.y.suggestedMax = maxT + 50;
+  previewChart.update('none');
+}
+
+function buildCurve() {
+  let data = [], t = 0, temp = 20;
+  ramps.forEach(r => {
+    const delta    = Math.abs(r.target - temp);
+    const safeRate = Math.max(Number(r.rate) || 10, 10);
+    const rampMin  = (delta / safeRate) * 60;
+    data.push({ x: Math.round(t * 10) / 10,   y: Math.round(temp * 10) / 10 });
+    t += rampMin;
+    data.push({ x: Math.round(t * 10) / 10,   y: Number(r.target) });
+    if (r.hold > 0) { t += Number(r.hold); data.push({ x: Math.round(t * 10)/10, y: Number(r.target) }); }
+    temp = r.target;
+  });
+  return data;
+}
+
+// ==================== MODAL ====================
+let _pendingAction = null;
+
+function showModal(title, msg, confirmLabel, confirmClass, onConfirm) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-msg').textContent   = msg;
+  const btn = document.getElementById('modal-confirm-btn');
+  btn.textContent = confirmLabel;
+  btn.className   = confirmClass || 'btn-confirm-yes';
+  _pendingAction  = onConfirm;
+  document.getElementById('modal-overlay').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('active');
+  _pendingAction = null;
+}
+
+document.getElementById('modal-confirm-btn').addEventListener('click', () => {
+  const action = _pendingAction;
+  closeModal();
+  if (action) action();
+});
+
+// ==================== TOAST ====================
+let _toastTimer = null;
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = 'show ' + (type || '');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { t.className = ''; }, 3000);
+}
+
+// ==================== NAVIGAZIONE ====================
+function goToMonitor()   { window.location.href = '/'; }
+function goAutotuning()  { window.location.href = '/autotuning'; }
+
+// ==================== UTILITY ====================
+function escHtml(s)  { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s)  { return s.replace(/'/g,"\\'"); }
+</script>
+</body>
+</html>

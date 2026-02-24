@@ -73,7 +73,21 @@ FLASK_DEBUG = False  # ATTENZIONE: True espone debugger interattivo sulla rete
 SENSOR_UPDATE_INTERVAL = 2      # secondi - lettura sensore temperatura
 TEMP_LOG_INTERVAL = 30          # secondi - logging durante esecuzione
 SAFETY_CHECK_INTERVAL = 1       # secondi - controlli sicurezza
-PID_UPDATE_INTERVAL = 5         # secondi - aggiornamento PID
+
+# ===== PROGRAM RUNNER (ciclo PID → valvola) =====
+# IMPORTANTE: un forno ceramica a mattoni ha inerzia termica enorme.
+# L'effetto di un cambio valvola si vede dopo 2-5 minuti.
+# Aggiornare la valvola troppo spesso causa overshoot e usura meccanica.
+# Il valore ottimale sarà affinato dopo l'autotuning (Pu/10 circa).
+PID_CYCLE_INTERVAL = 30         # secondi - intervallo aggiornamento PID e valvola
+PID_UPDATE_INTERVAL = 30        # alias per compatibilità
+
+# Temperatura: smorzamento rumore sensore
+TEMP_SMOOTHING_WINDOW = 5       # numero letture per media mobile (5 × 2s = 10s di media)
+
+# Tolleranze per avanzamento fasi
+RAMP_TOLERANCE = 10             # °C - target raggiunto se entro questa tolleranza
+HOLD_TOLERANCE = 15             # °C - timer hold avanza solo se entro tolleranza
 
 # ===== WATCHDOG =====
 WATCHDOG_INTERVAL = 5           # secondi - controllo watchdog
@@ -93,5 +107,5 @@ TEMP_HISTORY_SIZE = 1000        # Numero letture da mantenere in memoria
 COOLING_CALC_WINDOW = 600       # secondi (10min) per calcolo raffreddamento
 
 # ===== SISTEMA =====
-SYSTEM_NAME = "Forno Ceramica v3.1"
-SYSTEM_VERSION = "3.1.0"
+SYSTEM_NAME = "Forno Ceramica v3.2"
+SYSTEM_VERSION = "3.2.0"

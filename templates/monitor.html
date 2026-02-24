@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Forno Ceramica — Monitoraggio</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ===== VARIABILI ===== */
+:root {
+  --bg:        #0f0f0f;
+  --panel:     #181818;
+  --panel2:    #1f1f1f;
+  --border:    #272727;
+  --hot:       #ff4d2e;
+  --cold:      #3ecfcf;
+  --green:     #39d353;
+  --orange:    #ff9f1c;
+  --blue:      #4a90d9;
+  --muted:     #555;
+  --dim:       #888;
+  --text:      #e4e4e4;
+  --danger-bg: #1a0000;
+  --danger-bd: #7a0000;
+}
+
+/* ===== RESET ===== */
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ============================================================
+   LAYOUT DESKTOP — 1024x600 fisso, overflow hidden
+   ============================================================ */
+body.desktop { width:1024px; height:600px; overflow:hidden; }
+
+#app.desktop {
+  width:1024px; height:600px;
+  display:flex; flex-direction:column;
+  padding:6px; gap:5px;
+}
+#app.desktop .row-top    { height:158px; display:flex; gap:5px; flex-shrink:0; }
+#app.desktop .row-mid    { flex:1; min-height:0; }
+#app.desktop .row-bottom { height:56px; display:flex; gap:5px; flex-shrink:0; }
+
+/* ===== PANNELLO BASE ===== */
+.pnl {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+.pnl::after {
+  content:''; position:absolute; top:0; left:0; right:0;
+  height:2px; opacity:0.5;
+}
+.pnl-hot::after   { background:var(--hot); }
+.pnl-blue::after  { background:var(--blue); }
+.pnl-green::after { background:var(--green); }
+.pnl-chart::after { display:none; }
+
+/* ===== PANNELLO TEMPERATURA ===== */
+#pnl-temp {
+  display:flex; flex-direction:column;
+  justify-content:center;
+  padding:10px 14px 8px;
+  position:relative;
+}
+#app.desktop #pnl-temp { width:220px; flex-shrink:0; }
+
+.temp-label {
+  font-size:10px; letter-spacing:2px; text-transform:uppercase;
+  color:var(--muted); margin-bottom:4px;
+}
+
+/* Temperatura reale — grande */
+.temp-main { display:flex; align-items:baseline; gap:3px; line-height:1; }
+.temp-val {
+  font-size:60px; font-weight:700; color:var(--hot);
+  font-variant-numeric:tabular-nums; letter-spacing:-2px;
+  text-shadow:0 0 40px rgba(255,77,46,0.35); transition:color 0.5s;
+}
+.temp-unit-big {
+  font-size:20px; color:var(--muted);
+  align-self:flex-end; margin-bottom:6px;
+}
+
+/* Temperatura prevista + delta — sotto la reale, più piccoli */
+.temp-secondary {
+  display:flex; gap:18px; margin-top:6px;
+  flex-wrap:wrap;
+}
+.temp-sec-item { display:flex; flex-direction:column; gap:1px; }
+.temp-sec-label {
+  font-size:9px; letter-spacing:1.5px; text-transform:uppercase;
+  color:var(--muted);
+}
+.temp-sec-val {
+  font-size:22px; font-weight:600;
+  font-variant-numeric:tabular-nums; line-height:1;
+}
+.temp-sec-unit { font-size:11px; color:var(--muted); }
+.temp-sec-val.prevista  { color:var(--orange); }
+.temp-sec-val.delta-ok  { color:var(--dim); }
+.temp-sec-val.delta-pos { color:var(--green); }   /* sopra la curva */
+.temp-sec-val.delta-neg { color:#ff4444; }         /* sotto la curva */
+
+/* Ambiente — badge piccolo */
+.temp-amb {
+  position:absolute; bottom:7px; right:10px;
+  font-size:11px; color:var(--cold); opacity:0.6;
+  font-variant-numeric:tabular-nums;
+}
+
+/* Status dot */
+.status-dot {
+  display:inline-block; width:6px; height:6px; border-radius:50%;
+  background:var(--green); box-shadow:0 0 6px var(--green);
+  margin-right:5px; vertical-align:middle;
+  animation:pulse 2s infinite;
+}
+.status-dot.off  { background:#ff4444; box-shadow:0 0 6px #ff4444; animation:none; }
+.status-dot.wait { background:var(--orange); box-shadow:0 0 6px var(--orange); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.conn-row {
+  display:flex; align-items:center; flex-wrap:wrap; gap:4px;
+  font-size:10px; color:var(--muted); margin-top:4px;
+}
+
+/* Cooling badge */
+#cooling-badge {
+  font-size:11px; color:var(--cold);
+  background:rgba(62,207,207,0.08);
+  border:1px solid rgba(62,207,207,0.3);
+  border-radius:10px; padding:1px 7px;
+  display:none;
+}
+#cooling-badge.warn { color:var(--orange); background:rgba(255,159,28,0.1); border-color:rgba(255,159,28,0.3); }
+
+/* ===== PANNELLO PROGRAMMA ===== */
+#pnl-prog {
+  flex:1; padding:10px 14px 8px;
+  display:flex; flex-direction:column; gap:5px;
+}
+.prog-header {
+  display:flex; justify-content:space-between; align-items:baseline;
+}
+.prog-label {
+  font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted);
+}
+.prog-name {
+  font-size:20px; font-weight:700;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
+}
+.prog-idle { color:var(--muted); font-style:italic; font-size:15px; }
+
+.chips { display:flex; flex-wrap:wrap; gap:5px; }
+.chip {
+  background:var(--panel2); border:1px solid var(--border);
+  border-radius:4px; padding:2px 8px;
+  font-size:12px; font-variant-numeric:tabular-nums;
+}
+.chip span { color:var(--muted); font-size:10px; margin-right:2px; }
+.chip.phase-active { border-color:var(--green);  color:var(--green); }
+.chip.phase-hold   { border-color:var(--orange); color:var(--orange); }
+.chip.phase-idle   { color:var(--muted); }
+
+/* Barra progresso rampa */
+.ramp-bar-wrap { margin-top:auto; }
+.ramp-bar-meta {
+  display:flex; justify-content:space-between;
+  font-size:10px; color:var(--muted); margin-bottom:3px;
+}
+.ramp-bar-track { height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+.ramp-bar-fill  {
+  height:100%; background:linear-gradient(90deg,var(--hot),var(--orange));
+  border-radius:2px; transition:width 2s linear;
+}
+
+/* ===== PANNELLO TIMER ===== */
+#pnl-timer { padding:10px 14px 8px; display:flex; flex-direction:column; gap:2px; }
+#app.desktop #pnl-timer { width:190px; flex-shrink:0; }
+
+.timer-lbl {
+  font-size:10px; letter-spacing:1.5px; text-transform:uppercase;
+  color:var(--muted); margin-bottom:1px;
+}
+.timer-val {
+  font-size:28px; font-weight:700;
+  font-variant-numeric:tabular-nums; color:var(--orange); line-height:1;
+}
+.timer-val.total-val { font-size:20px; color:var(--dim); }
+.timer-divider { border:none; border-top:1px solid var(--border); margin:5px 0; }
+.timer-update {
+  margin-top:auto; font-size:10px; color:var(--muted);
+  display:flex; align-items:center; gap:4px;
+}
+
+/* ===== GRAFICO (solo desktop) ===== */
+#pnl-chart {
+  height:100%; padding:7px 10px 5px;
+  display:flex; flex-direction:column;
+}
+.chart-header {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:4px; flex-shrink:0;
+}
+.chart-title { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+.chart-legend { display:flex; gap:12px; font-size:10px; color:var(--muted); }
+.leg { display:inline-flex; align-items:center; gap:4px; }
+.leg-dot  { width:8px; height:8px; border-radius:50%; }
+.leg-dash { width:14px; height:3px; border-radius:1px; }
+.chart-wrap { flex:1; position:relative; min-height:0; }
+#myChart { position:absolute; top:0; left:0; width:100% !important; height:100% !important; }
+
+/* ===== PULSANTI BASE ===== */
+.btn-stop, .btn-page, .btn-lock {
+  border-radius:6px; font-weight:700; letter-spacing:1px;
+  cursor:pointer; display:flex; align-items:center;
+  justify-content:center; gap:7px; font-family:inherit;
+  transition:border-color 0.15s, background 0.15s, color 0.15s;
+}
+.btn-stop {
+  background:var(--danger-bg); border:2px solid var(--danger-bd);
+  color:#ff3333; font-size:15px; text-transform:uppercase;
+}
+.btn-stop:hover  { background:#240000; border-color:#ff3333; }
+.btn-stop:active { background:#300000; }
+
+.btn-page {
+  background:var(--panel); border:1px solid var(--border);
+  color:var(--text); font-size:14px;
+}
+.btn-page:hover  { border-color:var(--hot); color:var(--hot); }
+.btn-page:active { background:#1a1a1a; }
+
+.btn-lock {
+  background:var(--panel); border:1px solid var(--border);
+  color:var(--muted); font-size:13px; font-weight:600; letter-spacing:1px;
+}
+.btn-lock:hover  { border-color:var(--orange); color:var(--orange); }
+.btn-lock.locked { border-color:var(--orange); color:var(--orange); background:rgba(255,159,28,0.06); }
+
+/* Desktop: dimensioni fisse per i pulsanti */
+#app.desktop .btn-stop { flex:0 0 160px; height:100%; }
+#app.desktop .btn-page { flex:1;          height:100%; }
+#app.desktop .btn-lock { flex:0 0 150px; height:100%; }
+
+/* ============================================================
+   LAYOUT MOBILE — smartphone verticale
+   ============================================================ */
+@media (max-width:768px) {
+
+  html, body { width:100%; height:100%; }
+
+  body {
+    min-height:100dvh;
+    overflow-y:auto; overflow-x:hidden;
+    padding-bottom:72px;
+  }
+
+  #app {
+    width:100%;
+    display:flex; flex-direction:column;
+    padding:10px 10px 0; gap:8px;
+  }
+
+  /* Righe mobile */
+  .row-top { display:flex; flex-direction:column; gap:8px; height:auto !important; }
+  .row-mid { display:none !important; }   /* grafico nascosto */
+
+  /* Bottom bar fissa */
+  .row-bottom {
+    position:fixed; bottom:0; left:0; right:0;
+    height:64px !important; display:flex;
+    gap:6px; padding:8px 10px;
+    background:#111; border-top:1px solid var(--border); z-index:100;
+  }
+
+  /* Pannello temperatura */
+  #pnl-temp { width:100% !important; padding:14px 16px 46px; border-radius:10px; }
+
+  /* Temp reale più grande */
+  .temp-val { font-size:96px; letter-spacing:-5px; }
+  .temp-unit-big { font-size:30px; margin-bottom:12px; }
+
+  /* Prevista + delta: separatore sopra, valori più grandi */
+  .temp-secondary {
+    gap:24px; margin-top:10px;
+    padding-top:10px; border-top:1px solid var(--border);
+  }
+  .temp-sec-val { font-size:30px; }
+  .temp-sec-label { font-size:10px; }
+
+  /* Ambiente: torna nel flusso normale */
+  .temp-amb {
+    position:static; display:block;
+    font-size:12px; margin-top:8px; opacity:0.6;
+  }
+
+  /* Pannello programma */
+  #pnl-prog { width:100% !important; border-radius:10px; padding:12px 14px 10px; }
+  .prog-name { font-size:17px; white-space:normal; }
+  .chip { font-size:13px; padding:4px 10px; }
+
+  /* Timer: i due blocchi affiancati in riga */
+  #pnl-timer {
+    width:100% !important; border-radius:10px;
+    flex-direction:row; align-items:stretch;
+    padding:12px 0; gap:0;
+  }
+  .timer-block-inner {
+    flex:1; display:flex; flex-direction:column;
+    gap:2px; padding:0 16px;
+    justify-content:center;
+  }
+  .timer-block-inner:first-child { border-right:1px solid var(--border); }
+  .timer-val { font-size:34px; }
+  .timer-val.total-val { font-size:34px; color:var(--dim); }
+  .timer-divider { display:none; }
+  .timer-update  { display:none; }
+
+  /* Pulsanti bottom bar */
+  .row-bottom .btn-stop { flex:0 0 90px; font-size:13px; }
+  .row-bottom .btn-page { flex:1; font-size:13px; }
+  .row-bottom .btn-lock { flex:0 0 75px; font-size:12px; letter-spacing:0; }
+}
+
+/* ============================================================
+   OVERLAY / MODAL — comuni
+   ============================================================ */
+#lock-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,0.92); z-index:999;
+  justify-content:center; align-items:center;
+  flex-direction:column; gap:16px;
+}
+#lock-overlay.active { display:flex; }
+#lock-overlay .lock-icon { font-size:64px; }
+#lock-overlay .lock-msg  { font-size:18px; color:var(--orange); letter-spacing:2px; }
+#lock-overlay .lock-hint { font-size:13px; color:var(--muted); }
+
+#modal-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,0.75); z-index:998;
+  justify-content:center; align-items:center;
+}
+#modal-overlay.active { display:flex; }
+.modal-box {
+  background:#1c1c1c; border:1px solid #333; border-radius:10px;
+  padding:28px 32px; min-width:300px; max-width:90vw; text-align:center;
+}
+.modal-box h3 { font-size:18px; margin-bottom:10px; }
+.modal-box p  { color:var(--dim); font-size:14px; margin-bottom:22px; white-space:pre-line; line-height:1.5; }
+.modal-btns { display:flex; gap:10px; justify-content:center; }
+.modal-btns button {
+  padding:10px 28px; border-radius:6px; border:none;
+  font-size:15px; font-weight:600; cursor:pointer; font-family:inherit;
+}
+.btn-confirm-yes { background:#8b0000; color:#fff; }
+.btn-confirm-yes:hover { background:#b22222; }
+.btn-confirm-no  { background:#2a2a2a; color:var(--text); border:1px solid #444 !important; }
+
+@media (max-width:768px) {
+  .modal-box { padding:22px 20px; }
+  .modal-btns button { padding:12px 22px; font-size:16px; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===== RIGA 1: temperatura + programma + timer ===== -->
+  <div class="row-top">
+
+    <!-- Pannello temperatura -->
+    <div class="pnl pnl-hot" id="pnl-temp">
+      <div class="temp-label">Termocoppia</div>
+      <div class="temp-main">
+        <span class="temp-val" id="temp-hot">---.-</span>
+        <span class="temp-unit-big">°C</span>
+      </div>
+
+      <!-- Prevista + Delta — sempre visibili -->
+      <div class="temp-secondary" id="temp-secondary">
+        <div class="temp-sec-item">
+          <span class="temp-sec-label">Prevista</span>
+          <span class="temp-sec-val prevista" id="temp-prevista">--.-<span class="temp-sec-unit">°C</span></span>
+        </div>
+        <div class="temp-sec-item">
+          <span class="temp-sec-label">Delta</span>
+          <span class="temp-sec-val delta-ok" id="temp-delta-val">---<span class="temp-sec-unit">°C</span></span>
+        </div>
+      </div>
+
+      <div class="conn-row">
+        <span class="status-dot wait" id="status-dot"></span>
+        <span id="status-text">Connessione...</span>
+        <span id="cooling-badge">❄️ <span id="cooling-val">--</span>°C/h</span>
+      </div>
+      <div class="temp-amb">amb <span id="temp-cold">--.-</span>°C</div>
+    </div>
+
+    <!-- Pannello programma -->
+    <div class="pnl pnl-blue" id="pnl-prog">
+      <div class="prog-header">
+        <span class="prog-label">Programma in corso</span>
+      </div>
+      <div class="prog-name prog-idle" id="prog-name">Nessun programma attivo</div>
+      <div class="chips" id="prog-chips">
+        <div class="chip phase-idle">In attesa</div>
+      </div>
+      <div class="ramp-bar-wrap" id="ramp-bar-wrap" style="display:none;">
+        <div class="ramp-bar-meta">
+          <span id="ramp-bar-label">Rampa</span>
+          <span id="ramp-bar-rate">--</span>
+        </div>
+        <div class="ramp-bar-track">
+          <div class="ramp-bar-fill" id="ramp-bar-fill" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pannello timer -->
+    <div class="pnl pnl-green" id="pnl-timer">
+      <!-- Desktop: struttura verticale -->
+      <!-- Mobile: .timer-block-inner avvolge le coppie -->
+      <div class="timer-block-inner">
+        <div class="timer-lbl">Rampa corrente</div>
+        <div class="timer-val" id="timer-ramp">--:--</div>
+      </div>
+      <div class="timer-divider"></div>
+      <div class="timer-block-inner">
+        <div class="timer-lbl">Fine programma</div>
+        <div class="timer-val total-val" id="timer-total">--:--</div>
+      </div>
+      <div class="timer-update">
+        <span class="status-dot" id="live-dot"
+          style="animation:none;background:var(--muted);box-shadow:none;"></span>
+        Aggiorna <span id="countdown">5</span>s
+      </div>
+    </div>
+
+  </div><!-- /row-top -->
+
+  <!-- ===== RIGA 2: Grafico (solo desktop) ===== -->
+  <div class="row-mid">
+    <div class="pnl pnl-chart" id="pnl-chart">
+      <div class="chart-header">
+        <span class="chart-title">Curva di cottura</span>
+        <div class="chart-legend">
+          <span class="leg"><span class="leg-dot" style="background:var(--hot)"></span>Programma</span>
+          <span class="leg"><span class="leg-dot" style="background:var(--cold)"></span>Curva reale</span>
+          <span class="leg"><span class="leg-dash" style="background:var(--orange)"></span>Hold</span>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="myChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== RIGA 3: Pulsanti ===== -->
+  <div class="row-bottom">
+    <button class="btn-stop" id="btn-stop" onclick="confirmStop()">⬛ STOP</button>
+    <button class="btn-page" id="btn-gestione" onclick="goToPage2()">⚙ Gestione →</button>
+    <button class="btn-lock" id="btn-lock" onclick="confirmLock()">🔒 Blocca</button>
+  </div>
+
+</div><!-- /app -->
+
+<!-- Overlay blocco touch -->
+<div id="lock-overlay">
+  <div class="lock-icon">🔒</div>
+  <div class="lock-msg">SCHERMO BLOCCATO</div>
+  <div class="lock-hint">Tieni premuto per 3 secondi per sbloccare</div>
+</div>
+
+<!-- Modal conferma -->
+<div id="modal-overlay">
+  <div class="modal-box">
+    <h3 id="modal-title">Conferma</h3>
+    <p id="modal-msg">Sei sicuro?</p>
+    <div class="modal-btns">
+      <button class="btn-confirm-no" onclick="closeModal()">Annulla</button>
+      <button class="btn-confirm-yes" id="modal-confirm-btn">Conferma</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== RILEVAMENTO DISPOSITIVO ====================
+const isMobile = window.innerWidth <= 768;
+if (!isMobile) {
+  document.body.classList.add('desktop');
+  document.getElementById('app').classList.add('desktop');
+}
+
+// ==================== STATO GLOBALE ====================
+let chart             = null;
+let ramps             = [];
+let programName       = '';
+let updateInterval    = null;
+let countdownTimer    = null;
+let counter           = 5;
+let currentHotTemp    = 0;
+let prevTempEstimated = null;   // temperatura prevista dalla curva di rampa
+let programStartTime  = null;   // timestamp avvio programma (ms)
+let isProgramRunning  = false;  // programma in esecuzione sul server
+
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', () => {
+  if (!isMobile) initChart();
+  loadCurrentProgram();
+  startUpdates();
+  loadProgramStateFromAPI();
+});
+
+// ==================== AGGIORNAMENTO TEMPERATURE ====================
+function startUpdates() {
+  fetchTemperatures();
+  updateInterval = setInterval(fetchTemperatures, 5000);
+  counter = 5;
+  countdownTimer = setInterval(() => {
+    counter--;
+    if (counter < 0) counter = 5;
+    const el = document.getElementById('countdown');
+    if (el) el.textContent = counter;
+  }, 1000);
+}
+
+function fetchTemperatures() {
+  fetch('/api/temperatures')
+    .then(r => r.json())
+    .then(data => {
+      currentHotTemp = data.hot || 0;
+      document.getElementById('temp-hot').textContent  = data.hot.toFixed(1);
+      document.getElementById('temp-cold').textContent = data.cold.toFixed(1);
+
+      // Status dot e live indicator
+      const dot  = document.getElementById('status-dot');
+      const text = document.getElementById('status-text');
+      const live = document.getElementById('live-dot');
+      if (data.status === 'connected') {
+        dot.className         = 'status-dot';
+        text.textContent      = 'Sensore OK';
+        live.style.background = 'var(--green)';
+        live.style.boxShadow  = '0 0 6px var(--green)';
+        live.style.animation  = 'pulse 2s infinite';
+      } else {
+        dot.className         = 'status-dot off';
+        text.textContent      = 'Errore sensore!';
+        live.style.background = '#ff4444';
+        live.style.animation  = 'none';
+      }
+
+      // Cooling badge
+      const badge = document.getElementById('cooling-badge');
+      if (data.hot < 700 && data.hot > 50 && data.cooling_rate) {
+        document.getElementById('cooling-val').textContent = Math.abs(data.cooling_rate).toFixed(0);
+        badge.style.display = 'inline';
+        badge.className = Math.abs(data.cooling_rate) > 300 ? 'warn' : '';
+      } else {
+        badge.style.display = 'none';
+      }
+
+      // Temperatura prevista + delta
+      calcExpectedTemp();
+      updateTempSecondary(data.hot);
+
+      // Punto live e curva reale sul grafico (solo desktop)
+      if (!isMobile && chart && programStartTime) {
+        const elapsedMin = getElapsedMinutes();
+
+        // Aggiungi punto alla curva reale (dataset 1)
+        chart.data.datasets[1].data.push({ x: Math.round(elapsedMin * 10) / 10, y: data.hot });
+
+        // Punto live singolo (dataset 2)
+        chart.data.datasets[2].data = [{ x: elapsedMin, y: data.hot }];
+
+        chart.update('none');
+      }
+
+      counter = 5;
+    })
+    .catch(() => {
+      document.getElementById('status-dot').className = 'status-dot off';
+      document.getElementById('status-text').textContent = 'Connessione persa';
+    });
+}
+
+// ==================== TEMPERATURA PREVISTA E DELTA ====================
+function updateTempSecondary(realTemp) {
+  const prevEl  = document.getElementById('temp-prevista');
+  const deltaEl = document.getElementById('temp-delta-val');
+
+  if (prevTempEstimated === null) {
+    // Nessun programma attivo: mostra placeholder
+    prevEl.innerHTML  = '--.-<span class="temp-sec-unit">°C</span>';
+    deltaEl.innerHTML = '---<span class="temp-sec-unit">°C</span>';
+    deltaEl.className = 'temp-sec-val delta-ok';
+    return;
+  }
+
+  prevEl.innerHTML = prevTempEstimated.toFixed(1) + '<span class="temp-sec-unit">°C</span>';
+
+  const delta = realTemp - prevTempEstimated;
+  const sign  = delta >= 0 ? '+' : '';
+  deltaEl.innerHTML = sign + delta.toFixed(1) + '<span class="temp-sec-unit">°C</span>';
+
+  // Colore delta: grigio ≤5°C, verde sopra, rosso sotto
+  if (Math.abs(delta) <= 5) {
+    deltaEl.className = 'temp-sec-val delta-ok';
+  } else if (delta > 0) {
+    deltaEl.className = 'temp-sec-val delta-pos';
+  } else {
+    deltaEl.className = 'temp-sec-val delta-neg';
+  }
+}
+
+// Calcola la temperatura teorica in base al tempo trascorso dall'avvio
+function calcExpectedTemp() {
+  if (!programStartTime || ramps.length === 0) {
+    prevTempEstimated = null;
+    return;
+  }
+  const elapsedMin = (Date.now() - programStartTime) / 60000;
+  let t    = 0;
+  let temp = 20;
+
+  for (const r of ramps) {
+    const delta    = Math.abs(r.target - temp);
+    const safeRate = Math.max(Number(r.rate) || 10, 10);
+    const rampMin  = (delta / safeRate) * 60;
+    const holdMin  = Number(r.hold) || 0;
+
+    if (elapsedMin <= t + rampMin) {
+      // Dentro la rampa: interpolazione lineare
+      const frac = (elapsedMin - t) / rampMin;
+      prevTempEstimated = temp + (r.target - temp) * Math.min(Math.max(frac, 0), 1);
+      return;
+    }
+    t += rampMin;
+
+    if (elapsedMin <= t + holdMin) {
+      // Nel mantenimento (hold)
+      prevTempEstimated = r.target;
+      return;
+    }
+    t    += holdMin;
+    temp  = r.target;
+  }
+
+  // Programma concluso
+  prevTempEstimated = ramps[ramps.length - 1].target;
+}
+
+// ==================== CARICA STATO PROGRAMMA ====================
+function loadCurrentProgram() {
+  const saved = localStorage.getItem('kiln_active_program');
+  if (saved) {
+    try {
+      const p = JSON.parse(saved);
+      ramps       = p.ramps || [];
+      programName = p.name  || '';
+      if (ramps.length > 0) {
+        if (!isMobile) updateChart();
+        document.getElementById('prog-name').textContent = programName;
+        document.getElementById('prog-name').classList.remove('prog-idle');
+      }
+    } catch(e) {}
+  }
+  const startTs = localStorage.getItem('kiln_program_start');
+  if (startTs) programStartTime = parseInt(startTs);
+  calcExpectedTemp();
+}
+
+function loadProgramStateFromAPI() {
+  fetch('/api/status')
+    .then(r => r.json())
+    .then(data => {
+      const prog = data.program || {};
+      if (prog.running && prog.name) {
+        programName = prog.name;
+
+        // Carica ramps dal server se presenti, altrimenti da programmi salvati
+        if (prog.ramps && prog.ramps.length > 0) {
+          ramps = prog.ramps;
+          if (!isMobile) updateChart();
+        } else if (ramps.length === 0) {
+          fetch(`/api/programs/${encodeURIComponent(prog.name)}`)
+            .then(r => r.json())
+            .then(p => {
+              if (p.ramps) {
+                ramps = p.ramps;
+                if (!isMobile) updateChart();
+              }
+            })
+            .catch(() => {});
+        }
+
+        // start_time dal backend è in millisecondi
+        if (prog.start_time) {
+          programStartTime = prog.start_time;
+          localStorage.setItem('kiln_program_start', programStartTime.toString());
+        }
+
+        // Salva in localStorage per persistenza al refresh
+        localStorage.setItem('kiln_active_program', JSON.stringify({ name: prog.name, ramps: prog.ramps || ramps }));
+
+        updateProgramUI(prog);
+      } else {
+        // Nessun programma attivo sul server
+        // Pulisci solo kiln_active (NON kiln_editing, che appartiene a gestione)
+        localStorage.removeItem('kiln_active_program');
+        localStorage.removeItem('kiln_program_start');
+        programStartTime = null;
+        ramps = [];
+        programName = '';
+        updateProgramUI({});
+      }
+    })
+    .catch(() => {});
+
+  // Refresh stato ogni 10s
+  setInterval(() => {
+    fetch('/api/status')
+      .then(r => r.json())
+      .then(data => {
+        const prog = data.program || {};
+        if (prog.running && prog.name) {
+          if (prog.ramps && prog.ramps.length > 0 && ramps.length === 0) {
+            ramps = prog.ramps;
+            if (!isMobile) updateChart();
+          }
+          if (prog.start_time) {
+            programStartTime = prog.start_time;
+          }
+          updateProgramUI(prog);
+        } else {
+          updateProgramUI({});
+        }
+        calcExpectedTemp();
+      })
+      .catch(() => {});
+  }, 10000);
+}
+
+function updateProgramUI(prog) {
+  const nameEl  = document.getElementById('prog-name');
+  const chipsEl = document.getElementById('prog-chips');
+  const barWrap = document.getElementById('ramp-bar-wrap');
+  const timerR  = document.getElementById('timer-ramp');
+  const timerT  = document.getElementById('timer-total');
+
+  if (!prog || !prog.running || !prog.name) {
+    nameEl.textContent = 'Nessun programma attivo';
+    nameEl.classList.add('prog-idle');
+    chipsEl.innerHTML = '<div class="chip phase-idle">In attesa</div>';
+    barWrap.style.display = 'none';
+    timerR.textContent = '--:--';
+    timerT.textContent = '--:--';
+    prevTempEstimated  = null;
+    updateTempSecondary(currentHotTemp);
+    isProgramRunning = false;
+    updateGestioneBtn();
+    return;
+  }
+
+  nameEl.textContent = prog.name;
+  nameEl.classList.remove('prog-idle');
+
+  // Tutti i dati vengono dal ProgramRunner server-side
+  const rampN   = prog.current_ramp  || 1;
+  const totalR  = prog.total_ramps   || ramps.length;
+  const target  = prog.target_temp   || '--';
+  const rate    = prog.rate           || '--';
+  const phase   = prog.phase          || 'ramp';
+  const setpoint = prog.current_setpoint || '--';
+
+  // Fase: ramp=RISCALDO, hold=HOLD, discesa se target < setpoint precedente
+  let phaseClass, phaseLabel;
+  if (phase === 'hold') {
+    phaseClass = 'phase-hold';
+    phaseLabel = 'HOLD';
+    if (prog.hold_remaining_min !== undefined && prog.hold_remaining_min > 0) {
+      phaseLabel = `HOLD ${formatHM(prog.hold_remaining_min)}`;
+    }
+  } else {
+    phaseClass = 'phase-active';
+    // Detecta se è rampa in discesa
+    if (target !== '--' && setpoint !== '--' && Number(target) < currentHotTemp - 20) {
+      phaseLabel = 'DISCESA';
+    } else {
+      phaseLabel = 'RISCALDO';
+    }
+  }
+
+  chipsEl.innerHTML = `
+    <div class="chip">Rampa <span></span>${rampN}/${totalR}</div>
+    <div class="chip">Target <span></span>${target}°C</div>
+    <div class="chip">Vel. <span></span>${rate}°C/h</div>
+    <div class="chip ${phaseClass}">${phaseLabel}</div>`;
+
+  // Barra progresso (dal server)
+  if (prog.ramp_progress !== undefined && prog.ramp_progress >= 0) {
+    barWrap.style.display = 'block';
+    document.getElementById('ramp-bar-fill').style.width = prog.ramp_progress + '%';
+    document.getElementById('ramp-bar-label').textContent = `Rampa ${rampN}`;
+    document.getElementById('ramp-bar-rate').textContent = rate !== '--' ? `+${(rate/60).toFixed(1)}°C/min` : '';
+  } else {
+    barWrap.style.display = 'none';
+  }
+
+  // Timer (dal server)
+  if (prog.ramp_remaining_min !== undefined) {
+    timerR.textContent = formatHM(prog.ramp_remaining_min);
+  }
+  if (prog.total_remaining_min !== undefined) {
+    timerT.textContent = formatHM(prog.total_remaining_min);
+  }
+
+  // start_time dal backend (ms)
+  if (prog.start_time && prog.start_time > 1e12) {
+    programStartTime = prog.start_time;
+    localStorage.setItem('kiln_program_start', programStartTime.toString());
+  }
+
+  // Temperatura prevista = setpoint calcolato dal ProgramRunner
+  if (prog.current_setpoint !== undefined && prog.current_setpoint > 0) {
+    prevTempEstimated = prog.current_setpoint;
+  }
+  updateTempSecondary(currentHotTemp);
+
+  // Blocca/sblocca pulsante gestione
+  isProgramRunning = prog.running === true;
+  updateGestioneBtn();
+}
+
+// ==================== GRAFICO (solo desktop) ====================
+function initChart() {
+  const ctx = document.getElementById('myChart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [
+        {
+          label: 'Programma', data: [],
+          borderColor: '#ff4d2e', backgroundColor: 'rgba(255,77,46,0.04)',
+          borderWidth: 2, pointRadius: 2, pointHoverRadius: 5,
+          fill: true, tension: 0,
+          segment: {
+            borderColor: c => c.p0.parsed.y === c.p1.parsed.y ? '#ff9f1c' : '#ff4d2e',
+            borderDash:  c => c.p0.parsed.y === c.p1.parsed.y ? [6,4] : [],
+            borderWidth: c => c.p0.parsed.y === c.p1.parsed.y ? 1.5 : 2,
+          }
+        },
+        {
+          label: 'Curva reale', data: [],
+          borderColor: '#3ecfcf', backgroundColor: 'rgba(62,207,207,0.04)',
+          borderWidth: 2, pointRadius: 1, fill: false, tension: 0.2, showLine: true,
+        },
+        {
+          label: 'Temperatura attuale', data: [],
+          borderColor: '#39d353', backgroundColor: '#39d353',
+          pointRadius: 7, pointHoverRadius: 9, showLine: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      layout: { padding: { top:4, bottom:2, left:0, right:8 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(0,0,0,0.85)', titleColor: '#ff4d2e',
+          bodyColor: '#ddd', borderColor: '#333', borderWidth: 1,
+          callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}°C` }
+        }
+      },
+      scales: {
+        x: {
+          type: 'linear', min: 0,
+          title: { display:true, text:'minuti', color:'#444', font:{size:10} },
+          ticks: { color:'#444', font:{size:9}, maxTicksLimit:12 },
+          grid:  { color:'rgba(255,255,255,0.04)' }
+        },
+        y: {
+          min: 0,
+          title: { display:true, text:'°C', color:'#444', font:{size:10} },
+          ticks: { color:'#444', font:{size:9}, maxTicksLimit:8 },
+          grid:  { color:'rgba(255,255,255,0.04)' }
+        }
+      }
+    }
+  });
+}
+
+function updateChart() {
+  if (!chart || ramps.length === 0) return;
+  const curve  = buildCurve();
+  const maxT   = Math.max(...ramps.map(r => Number(r.target)||0), 100);
+  const totMin = totalProgramMinutes();
+  chart.data.datasets[0].data = curve;
+  chart.options.scales.x.max  = Math.max(totMin * 1.08, 60);
+  chart.options.scales.y.suggestedMax = maxT + 60;
+  chart.update('none');
+}
+
+function buildCurve() {
+  let data = [], t = 0, temp = 20;
+  ramps.forEach(r => {
+    const delta    = Math.abs(r.target - temp);
+    const safeRate = Math.max(Number(r.rate)||10, 10);
+    const rampMin  = (delta / safeRate) * 60;
+    data.push({ x: Math.round(t*10)/10, y: Math.round(temp*10)/10 });
+    t += rampMin;
+    data.push({ x: Math.round(t*10)/10, y: Number(r.target) });
+    if (r.hold > 0) {
+      t += Number(r.hold);
+      data.push({ x: Math.round(t*10)/10, y: Number(r.target) });
+    }
+    temp = r.target;
+  });
+  return data;
+}
+
+// ==================== CALCOLI ====================
+function totalProgramMinutes() {
+  let t = 0, temp = 20;
+  ramps.forEach(r => {
+    const delta    = Math.abs(r.target - temp);
+    const safeRate = Math.max(Number(r.rate)||10, 10);
+    t   += (delta / safeRate) * 60 + (Number(r.hold)||0);
+    temp = r.target;
+  });
+  return Math.round(t);
+}
+
+function formatHM(mins) {
+  if (!mins || isNaN(mins)) return '--:--';
+  const h = Math.floor(mins / 60);
+  const m = Math.round(mins % 60);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
+function getElapsedMinutes() {
+  if (!programStartTime) return 0;
+  return (Date.now() - programStartTime) / 60000;
+}
+
+// ==================== MODAL ====================
+let _pendingAction = null;
+
+function showModal(title, msg, confirmLabel, confirmClass, onConfirm) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-msg').textContent   = msg;
+  const btn = document.getElementById('modal-confirm-btn');
+  btn.textContent = confirmLabel;
+  btn.className   = confirmClass || 'btn-confirm-yes';
+  _pendingAction  = onConfirm;
+  document.getElementById('modal-overlay').classList.add('active');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('active');
+  _pendingAction = null;
+}
+document.getElementById('modal-confirm-btn').addEventListener('click', () => {
+  const action = _pendingAction;
+  closeModal();
+  if (action) action();
+});
+
+// ==================== STOP ====================
+function confirmStop() {
+  showModal(
+    '⬛ STOP FORNO',
+    'Vuoi davvero fermare il programma in corso?\nIl forno si spegnerà immediatamente.',
+    'Sì, STOP', 'btn-confirm-yes', doStop
+  );
+}
+function doStop() {
+  fetch('/api/emergency/stop', { method: 'POST' })
+    .then(r => r.json())
+    .then(() => {
+      updateProgramUI({});
+      localStorage.removeItem('kiln_active_program');
+      localStorage.removeItem('kiln_program_start');
+    })
+    .catch(() => alert('Errore comunicazione server'));
+}
+
+// ==================== LOCK ====================
+function confirmLock() {
+  showModal(
+    '🔒 Blocca schermo',
+    'Bloccare il touch screen?\nPer sbloccare tieni premuto per 3 secondi.',
+    'Blocca', 'btn-confirm-yes', doLock
+  );
+}
+let lockHoldTimer = null;
+function doLock() {
+  const overlay = document.getElementById('lock-overlay');
+  overlay.classList.add('active');
+  document.getElementById('btn-lock').classList.add('locked');
+  overlay.addEventListener('touchstart', startUnlock, { passive: true });
+  overlay.addEventListener('mousedown',  startUnlock);
+  overlay.addEventListener('touchend',   cancelUnlock);
+  overlay.addEventListener('mouseup',    cancelUnlock);
+}
+function startUnlock() {
+  lockHoldTimer = setTimeout(() => {
+    document.getElementById('lock-overlay').classList.remove('active');
+    document.getElementById('btn-lock').classList.remove('locked');
+  }, 3000);
+}
+function cancelUnlock() {
+  if (lockHoldTimer) { clearTimeout(lockHoldTimer); lockHoldTimer = null; }
+}
+
+// ==================== NAVIGAZIONE ====================
+function updateGestioneBtn() {
+  const btn = document.getElementById('btn-gestione');
+  if (isProgramRunning) {
+    btn.disabled = true;
+    btn.title    = 'Non disponibile durante l\'esecuzione';
+    btn.style.opacity      = '0.35';
+    btn.style.cursor       = 'not-allowed';
+    btn.style.borderColor  = 'var(--muted)';
+    btn.style.color        = 'var(--muted)';
+    btn.textContent        = '🔒 Gestione bloccata';
+  } else {
+    btn.disabled = false;
+    btn.title    = '';
+    btn.style.opacity      = '1';
+    btn.style.cursor       = 'pointer';
+    btn.style.borderColor  = '';
+    btn.style.color        = '';
+    btn.textContent        = '⚙ Gestione →';
+  }
+}
+
+function goToPage2() {
+  if (isProgramRunning) return;   // doppia sicurezza
+  window.location.href = '/gestione';
+}
+</script>
+</body>
+</html>

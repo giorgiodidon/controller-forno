@@ -270,6 +270,13 @@ class ProgramRunner:
         self.logger.complete_logging()
         self.notifications.notify_program_complete(self.program_name, elapsed_min)
         
+        # Beep completamento
+        try:
+            from utils.audio import beep_program_complete
+            beep_program_complete()
+        except Exception:
+            pass
+        
         # Resetta stato globale
         self._reset_program_state()
         

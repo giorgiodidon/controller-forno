@@ -16,6 +16,9 @@ from core import PIDController, SafetyMonitor, DataLogger, Watchdog, ProgramRunn
 from core.autotuner import RelayAutotuner
 from services import NotificationService, StorageService
 from utils import calculate_cooling_rate, format_time
+from utils.audio import (beep_startup, beep_program_start, beep_program_complete,
+                         beep_program_stopped, beep_autotuning_start,
+                         beep_autotuning_complete, beep_error, beep_emergency)
 
 # ===== INIZIALIZZAZIONE FLASK =====
 app = Flask(__name__)
@@ -191,6 +194,7 @@ def temperature_monitor_thread():
                         priority="high",
                         tags=["white_check_mark", "gear"]
                     )
+                    beep_autotuning_complete()
                     autotuner._completion_notified = True
                 autotuner.is_running = False
 
@@ -295,6 +299,7 @@ def start_program():
 
         success = runner.start(program_name, ramps)
         if success:
+            beep_program_start()
             return jsonify({'success': True, 'message': f'Programma "{program_name}" avviato'})
         else:
             return jsonify({'success': False, 'error': 'Errore avvio programma'})
@@ -307,6 +312,7 @@ def stop_program():
     """Ferma programma in esecuzione"""
     if runner.is_running:
         runner.stop()
+        beep_program_stopped()
     return jsonify({'success': True, 'message': 'Programma fermato'})
 
 
@@ -327,6 +333,7 @@ def start_logging():
 
         success = runner.start(program_name, ramps)
         if success:
+            beep_program_start()
             return jsonify({'success': True})
         else:
             return jsonify({'success': False, 'error': 'Errore avvio programma'})
@@ -339,6 +346,7 @@ def stop_logging():
     """Ferma programma — redirige al ProgramRunner"""
     if runner.is_running:
         runner.stop()
+        beep_program_stopped()
     return jsonify({'success': True})
 
 
@@ -494,6 +502,7 @@ def emergency_stop():
     actuators.emergency_stop()
     if watchdog.solenoid.enabled:
         watchdog.solenoid.close()
+    beep_emergency()
     return jsonify({'success': True, 'message': 'EMERGENCY STOP eseguito'})
 
 
@@ -548,6 +557,7 @@ def start_autotuning():
             priority="high",
             tags=["gear"]
         )
+        beep_autotuning_start()
         return jsonify({'success': True, 'message': f'Autotuning a {temperature}°C avviato'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -621,6 +631,7 @@ if __name__ == '__main__':
 
     # Notifica sistema online
     notifications.notify_system_start()
+    beep_startup()
 
     # Avvia Flask
     print(f"🌐 Server web: http://{FLASK_HOST}:{FLASK_PORT}")

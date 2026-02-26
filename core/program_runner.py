@@ -28,7 +28,8 @@ from config import (
     RAMP_TOLERANCE,
     HOLD_TOLERANCE,
     SENSOR_UPDATE_INTERVAL,
-    TEMP_LOG_INTERVAL
+    TEMP_LOG_INTERVAL,
+    VALVE_MAX_STEP_PER_CYCLE
 )
 
 
@@ -312,30 +313,54 @@ class ProgramRunner:
             self._process_hold(current_temp, target)
         
         # 3. Calcola output PID
-        pid_output = self.pid.compute(self.current_setpoint, current_temp)
+        pid_raw_output = self.pid.compute(self.current_setpoint, current_temp)
         
-        # 4. Comanda valvola
-        self.actuators.set_valve_position(pid_output)
-        self.last_valve_output = pid_output
+        # 4. Rate limiter — limita il salto massimo per ciclo
+        valve_limited = False
+        valve_output = pid_raw_output
+        delta = valve_output - self.last_valve_output
+        if abs(delta) > VALVE_MAX_STEP_PER_CYCLE:
+            valve_limited = True
+            if delta > 0:
+                valve_output = self.last_valve_output + VALVE_MAX_STEP_PER_CYCLE
+            else:
+                valve_output = self.last_valve_output - VALVE_MAX_STEP_PER_CYCLE
+            valve_output = max(0, min(100, valve_output))
         
-        # 5. Aggiorna stato per frontend
+        # 5. Comanda valvola
+        self.actuators.set_valve_position(valve_output)
+        self.last_valve_output = valve_output
+        
+        # 6. Aggiorna stato per frontend
         self._update_program_state()
         
-        # 6. Log periodico temperatura
+        # 7. Calcola derivata temperatura (°C/min)
+        temp_rate = 0.0
+        if len(self.temp_buffer) >= 2:
+            dt_samples = PID_CYCLE_INTERVAL / 60.0  # minuti tra campioni
+            temp_rate = (self.temp_buffer[-1] - self.temp_buffer[-2]) / dt_samples if dt_samples > 0 else 0
+        
+        # 8. Log periodico con tutti i dati
         now = time.time()
         if now - self._last_log_time >= TEMP_LOG_INTERVAL:
             self.logger.log_temperature(
-                current_temp,
-                self.current_setpoint,
-                pid_output,
-                self.temperature_data.get('cooling_rate', 0)
+                temp=current_temp,
+                setpoint=self.current_setpoint,
+                valve_position=valve_output,
+                cooling_rate=self.temperature_data.get('cooling_rate', 0),
+                pid_terms=self.pid.get_terms(),
+                valve_limited=valve_limited,
+                pid_raw=pid_raw_output,
+                temp_cold=self.temperature_data.get('cold', 0),
+                temp_rate=temp_rate
             )
             self._last_log_time = now
         
         # Debug
+        limited_str = " [LIM]" if valve_limited else ""
         phase_str = f"RAMP→{target}°C" if self.phase == 'ramp' else f"HOLD {target}°C ({self.hold_remaining:.0f}s)"
         print(f"  🌡️ T={current_temp:.1f}°C SP={self.current_setpoint:.1f}°C "
-              f"PID={pid_output:.1f}% [{phase_str}] "
+              f"PID={pid_raw_output:.1f}%→V={valve_output:.1f}%{limited_str} [{phase_str}] "
               f"R{self.current_ramp_index + 1}/{len(self.ramps)}")
     
     def _process_ramp(self, current_temp, target, rate):

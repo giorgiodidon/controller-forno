@@ -4,12 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PID Autotuning - Forno Ceramica</title>
-
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
 <style>
-/* Stesso stile di index.html */
 :root {
   --bg-primary: #1e1e1e;
   --bg-secondary: #2a2a2a;
@@ -27,13 +23,7 @@
   --border-color: #555;
   --warning: #ff9e6d;
 }
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
+* { margin:0; padding:0; box-sizing:border-box; }
 body {
   background: var(--bg-primary);
   color: var(--text-primary);
@@ -41,219 +31,149 @@ body {
   padding: 10px;
   line-height: 1.5;
 }
-
 h1 {
-  margin-bottom: 10px;
-  color: var(--accent-hot);
+  margin-bottom: 10px; color: var(--accent-hot);
   font-size: clamp(20px, 5vw, 28px);
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: flex; align-items: center; gap: 8px;
 }
-
-h2 {
-  font-size: clamp(18px, 4.5vw, 24px);
-  margin-bottom: 12px;
-}
-
+h2 { font-size: clamp(18px, 4.5vw, 24px); margin-bottom: 12px; }
 .panel {
-  background: var(--bg-secondary);
-  padding: 15px;
-  border-radius: 12px;
-  margin-bottom: 15px;
+  background: var(--bg-secondary); padding: 15px;
+  border-radius: 12px; margin-bottom: 15px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
-
 .temp-panel {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  margin-top: 10px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px; margin-top: 10px;
 }
-
 .temp-card {
-  background: var(--bg-tertiary);
-  padding: 16px 12px;
-  border-radius: 12px;
-  text-align: center;
-  border-left: 5px solid;
+  background: var(--bg-tertiary); padding: 16px 12px;
+  border-radius: 12px; text-align: center; border-left: 5px solid;
 }
-
 .temp-card.hot { border-left-color: var(--accent-hot); }
-.temp-label {
-  color: var(--text-secondary);
-  font-size: clamp(12px, 3.5vw, 14px);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.temp-value {
-  font-size: clamp(28px, 8vw, 42px);
-  font-weight: bold;
-  margin: 8px 0 4px;
-}
-
-.temp-unit {
-  color: var(--text-muted);
-  font-size: clamp(14px, 4vw, 18px);
-}
-
+.temp-label { color: var(--text-secondary); font-size: clamp(12px, 3.5vw, 14px); text-transform: uppercase; letter-spacing: 1px; }
+.temp-value { font-size: clamp(28px, 8vw, 42px); font-weight: bold; margin: 8px 0 4px; }
+.temp-unit { color: var(--text-muted); font-size: clamp(14px, 4vw, 18px); }
 button {
-  background: var(--bg-input);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 12px 16px;
-  font-size: clamp(14px, 4vw, 16px);
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
+  background: var(--bg-input); color: var(--text-primary);
+  border: 1px solid var(--border-color); border-radius: 8px;
+  padding: 12px 16px; font-size: clamp(14px, 4vw, 16px);
+  font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
 }
-
-button:active {
-  transform: scale(0.97);
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-start { background: var(--accent-green); }
-.btn-stop { background: var(--accent-orange); }
+button:active { transform: scale(0.97); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-start { background: var(--accent-green); color: #000; }
+.btn-stop { background: var(--accent-orange); color: #000; }
 .btn-apply { background: var(--accent-blue); }
 .btn-back { background: var(--bg-tertiary); }
-
-.canvas-container {
-  position: relative;
-  height: 350px;
-  width: 100%;
-  margin-top: 15px;
-}
-
-canvas {
-  background: #1a1a1a;
-  border-radius: 10px;
-  width: 100% !important;
-  height: 100% !important;
-}
-
+.canvas-container { position: relative; height: 350px; width: 100%; margin-top: 15px; }
+canvas { background: #1a1a1a; border-radius: 10px; width: 100%!important; height: 100%!important; }
 .status-bar {
-  background: var(--bg-tertiary);
-  padding: 12px 15px;
-  border-radius: 10px;
-  margin-top: 15px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  font-size: clamp(13px, 3.8vw, 15px);
+  background: var(--bg-tertiary); padding: 12px 15px; border-radius: 10px;
+  margin-top: 15px; display: flex; flex-wrap: wrap; align-items: center;
+  gap: 12px; font-size: clamp(13px, 3.8vw, 15px);
 }
-
-.status-led {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.status-led.on {
-  background: var(--accent-green);
-  box-shadow: 0 0 10px var(--accent-green);
-  animation: pulse 2s infinite;
-}
-
-.status-led.wait {
-  background: var(--accent-orange);
-  box-shadow: 0 0 10px var(--accent-orange);
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.progress-bar {
-  width: 100%;
-  height: 30px;
-  background: var(--bg-tertiary);
-  border-radius: 15px;
-  overflow: hidden;
-  margin: 15px 0;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent-green), var(--accent-cold));
-  transition: width 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-}
-
-.results-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-  margin-top: 15px;
-}
-
-.result-card {
-  background: var(--bg-tertiary);
-  padding: 15px;
-  border-radius: 10px;
-  text-align: center;
-}
-
-.result-value {
-  font-size: clamp(24px, 6vw, 32px);
-  font-weight: bold;
-  color: var(--accent-cold);
-  margin: 8px 0;
-}
-
-.result-label {
-  color: var(--text-secondary);
-  font-size: clamp(12px, 3.5vw, 14px);
-}
-
+.status-led { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+.status-led.on { background: var(--accent-green); box-shadow: 0 0 10px var(--accent-green); animation: pulse 2s infinite; }
+.status-led.wait { background: var(--accent-orange); box-shadow: 0 0 10px var(--accent-orange); animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+.progress-bar { width: 100%; height: 30px; background: var(--bg-tertiary); border-radius: 15px; overflow: hidden; margin: 15px 0; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent-green), var(--accent-cold)); transition: width 0.3s; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+.results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 15px; }
+.result-card { background: var(--bg-tertiary); padding: 15px; border-radius: 10px; text-align: center; }
+.result-value { font-size: clamp(24px, 6vw, 32px); font-weight: bold; color: var(--accent-cold); margin: 8px 0; }
+.result-label { color: var(--text-secondary); font-size: clamp(12px, 3.5vw, 14px); }
 .warning {
-  color: var(--warning);
-  background: rgba(255,158,109,0.1);
-  padding: 12px;
-  border-radius: 8px;
-  border-left: 4px solid var(--warning);
-  margin: 15px 0;
-  font-size: clamp(13px, 3.8vw, 14px);
+  color: var(--warning); background: rgba(255,158,109,0.1);
+  padding: 12px; border-radius: 8px; border-left: 4px solid var(--warning);
+  margin: 15px 0; font-size: clamp(13px, 3.8vw, 14px);
 }
-
 .info-box {
-  background: var(--bg-tertiary);
-  padding: 15px;
-  border-radius: 10px;
-  margin: 15px 0;
-  font-size: clamp(13px, 3.8vw, 14px);
-  line-height: 1.6;
+  background: var(--bg-tertiary); padding: 15px; border-radius: 10px;
+  margin: 15px 0; font-size: clamp(13px, 3.8vw, 14px); line-height: 1.6;
 }
+.hide { display: none !important; }
 
-.hide {
-  display: none !important;
+/* Temperature input */
+.temp-input-row {
+  display: flex; align-items: center; gap: 12px;
+  margin: 15px 0; flex-wrap: wrap;
 }
+.temp-input-row label {
+  font-size: 15px; font-weight: 600; color: var(--text-primary);
+}
+.temp-input-row input {
+  background: var(--bg-input); color: var(--text-primary);
+  border: 1px solid var(--border-color); border-radius: 8px;
+  padding: 10px 14px; font-size: 18px; font-weight: 700;
+  width: 110px; text-align: center;
+}
+.temp-input-row input:focus { outline: none; border-color: var(--accent-cold); }
+.temp-input-row .unit { color: var(--text-muted); font-size: 16px; }
+.temp-presets { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.temp-presets button {
+  padding: 6px 14px; font-size: 13px; border-radius: 6px;
+  background: var(--bg-tertiary); border: 1px solid var(--border-color);
+}
+.temp-presets button:hover { border-color: var(--accent-cold); }
+.temp-presets button.active { background: var(--accent-cold); color: #000; border-color: var(--accent-cold); }
+
+/* Relay info chips */
+.relay-info {
+  display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0;
+}
+.relay-chip {
+  background: var(--bg-tertiary); padding: 4px 10px; border-radius: 6px;
+  font-size: 12px; color: var(--text-secondary);
+}
+.relay-chip span { color: var(--accent-cold); font-weight: 600; }
+
+/* History table */
+.history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+.history-table th {
+  text-align: left; padding: 8px; border-bottom: 1px solid var(--border-color);
+  color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+}
+.history-table td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.history-table tr:hover { background: rgba(78,205,196,0.05); }
+.history-empty { color: var(--text-muted); padding: 20px; text-align: center; font-style: italic; }
+
+/* Compare table */
+.compare-table {
+  width: 100%; border-collapse: collapse; margin-top: 10px;
+  font-family: -apple-system, monospace;
+}
+.compare-table th {
+  text-align: center; padding: 10px 12px;
+  border-bottom: 2px solid var(--border-color);
+  color: var(--text-muted); font-size: 14px; font-weight: 700;
+}
+.compare-table td {
+  text-align: center; padding: 12px; font-size: 16px; font-weight: 600;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.compare-label {
+  text-align: left !important; font-size: 13px !important;
+  color: var(--text-secondary); font-weight: 500 !important;
+  width: 100px;
+}
+.compare-current td { color: var(--text-muted); }
+.compare-current .compare-label { color: var(--text-secondary); }
+.compare-new td { color: var(--accent-cold); font-size: 18px; }
+.compare-new .compare-label { color: var(--accent-cold); }
+.compare-delta td { font-size: 13px; font-weight: 500; }
+.delta-up { color: var(--accent-hot); }
+.delta-down { color: var(--accent-green); }
+.delta-same { color: var(--text-muted); }
 </style>
 </head>
-
 <body>
 
 <h1>
   🎯 PID Autotuning
-  <button class="btn-back" onclick="window.location.href='/'">
-    ← Indietro
-  </button>
+  <button class="btn-back" onclick="window.location.href='/'">← Monitor</button>
+  <button class="btn-back" onclick="window.location.href='/gestione'">📋 Gestione</button>
 </h1>
 
 <!-- TEMPERATURA CORRENTE -->
@@ -270,42 +190,59 @@ canvas {
 
 <!-- CONTROLLI TEST -->
 <div class="panel" id="controlPanel">
-  <h2>⚙️ Controlli Autotuning</h2>
-  
+  <h2>⚙️ Configurazione Test</h2>
+
+  <div class="temp-input-row">
+    <label for="tempInput">Temperatura test:</label>
+    <input type="number" id="tempInput" value="200" min="100" max="1200" step="50">
+    <span class="unit">°C</span>
+  </div>
+
+  <div class="temp-presets">
+    <button onclick="setTemp(150)">150°C</button>
+    <button onclick="setTemp(200)" class="active">200°C</button>
+    <button onclick="setTemp(350)">350°C</button>
+    <button onclick="setTemp(500)">500°C</button>
+    <button onclick="setTemp(700)">700°C</button>
+    <button onclick="setTemp(900)">900°C</button>
+  </div>
+
+  <div class="relay-info" id="relayInfo">
+    <div class="relay-chip">Relay: <span id="relayRange">0% ↔ 15%</span></div>
+    <div class="relay-chip">Isteresi: <span id="relayHyst">±3°C</span></div>
+    <div class="relay-chip">Oscillazioni: <span>3 minimo</span></div>
+  </div>
+
   <div class="info-box">
-    <strong>Test a 500°C con metodo Relay Feedback</strong><br>
-    Il sistema oscillerà automaticamente attorno ai 500°C per identificare i parametri ottimali del PID.
-    Durata stimata: 20-30 minuti.
+    <strong>Metodo Relay Feedback (Åström-Hägglund)</strong><br>
+    Il sistema oscillerà attorno alla temperatura selezionata per identificare i parametri ottimali del PID.
+    I parametri relay vengono adattati automaticamente alla temperatura scelta.
   </div>
-  
-  <button class="btn-start" id="btnStart" onclick="startAutotuning()">
-    ▶️ Avvia Autotuning
-  </button>
-  
-  <button class="btn-stop hide" id="btnStop" onclick="stopAutotuning()">
-    ⏹️ Ferma Test
-  </button>
-  
-  <div class="warning hide" id="warningBox">
-    ⚠️ <strong>ATTENZIONE:</strong> Il forno raggiungerà 500°C. Non lasciare incustodito.
+
+  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+    <button class="btn-start" id="btnStart" onclick="startAutotuning()">
+      ▶️ Avvia Autotuning
+    </button>
+    <button class="btn-stop hide" id="btnStop" onclick="stopAutotuning()">
+      ⏹️ Ferma Test
+    </button>
   </div>
+
+  <div class="warning hide" id="warningBox"></div>
 </div>
 
 <!-- STATO TEST -->
 <div class="panel hide" id="statusPanel">
   <h2>📊 Stato Test</h2>
-  
   <div class="status-bar">
     <span class="status-led wait" id="statusLed"></span>
     <span id="statusText">In attesa...</span>
   </div>
-  
   <div class="progress-bar">
     <div class="progress-fill" id="progressFill" style="width: 0%">
       <span id="progressText">0%</span>
     </div>
   </div>
-  
   <div class="info-box" id="phaseInfo">
     Fase: <strong id="phaseText">-</strong><br>
     Oscillazioni: <strong id="oscillationsText">0 / 3</strong><br>
@@ -316,15 +253,13 @@ canvas {
 <!-- GRAFICO -->
 <div class="panel hide" id="chartPanel">
   <h2>📈 Oscillazioni in Tempo Reale</h2>
-  
   <div class="canvas-container">
     <canvas id="chart"></canvas>
   </div>
-  
   <div class="info-box">
-    <span style="color: var(--accent-hot);">━━</span> Temperatura<br>
-    <span style="color: var(--accent-cold);">━ ━</span> Setpoint 500°C<br>
-    <span style="color: var(--accent-green);">●</span> Crossing<br>
+    <span style="color: var(--accent-hot);">━━</span> Temperatura &nbsp;
+    <span style="color: var(--accent-cold);">━ ━</span> Setpoint &nbsp;
+    <span style="color: var(--accent-green);">●</span> Crossing &nbsp;
     <span style="color: var(--accent-orange);">▲</span> Picchi
   </div>
 </div>
@@ -332,7 +267,11 @@ canvas {
 <!-- RISULTATI -->
 <div class="panel hide" id="resultsPanel">
   <h2>✅ Risultati Autotuning</h2>
-  
+
+  <div class="info-box">
+    Test eseguito a <strong id="resultTemp">--</strong>°C
+  </div>
+
   <h3 style="margin: 15px 0;">Parametri Misurati</h3>
   <div class="results-grid">
     <div class="result-card">
@@ -343,7 +282,7 @@ canvas {
     <div class="result-card">
       <div class="result-label">Periodo Critico</div>
       <div class="result-value" id="resultPu">-</div>
-      <div class="result-label">Pu (secondi)</div>
+      <div class="result-label">secondi</div>
     </div>
     <div class="result-card">
       <div class="result-label">Ampiezza</div>
@@ -351,30 +290,44 @@ canvas {
       <div class="result-label">°C</div>
     </div>
   </div>
-  
-  <h3 style="margin: 15px 0;">🎯 PID Consigliati (Conservativi)</h3>
-  <div class="results-grid">
-    <div class="result-card">
-      <div class="result-label">Kp</div>
-      <div class="result-value" id="resultKp">-</div>
-    </div>
-    <div class="result-card">
-      <div class="result-label">Ki</div>
-      <div class="result-value" id="resultKi">-</div>
-    </div>
-    <div class="result-card">
-      <div class="result-label">Kd</div>
-      <div class="result-value" id="resultKd">-</div>
-    </div>
+
+  <h3 style="margin: 15px 0;">🎯 Confronto PID</h3>
+  <table class="compare-table">
+    <thead>
+      <tr><th></th><th>Kp</th><th>Ki</th><th>Kd</th></tr>
+    </thead>
+    <tbody>
+      <tr class="compare-current">
+        <td class="compare-label">Attuali</td>
+        <td id="currentKp">-</td>
+        <td id="currentKi">-</td>
+        <td id="currentKd">-</td>
+      </tr>
+      <tr class="compare-new">
+        <td class="compare-label">Proposti</td>
+        <td id="resultKp">-</td>
+        <td id="resultKi">-</td>
+        <td id="resultKd">-</td>
+      </tr>
+      <tr class="compare-delta">
+        <td class="compare-label">Variazione</td>
+        <td id="deltaKp">-</td>
+        <td id="deltaKi">-</td>
+        <td id="deltaKd">-</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:15px;">
+    <button class="btn-apply" onclick="applyPID()">✓ Applica PID Proposti</button>
+    <button class="btn-back" onclick="resetTest()">🔄 Nuovo Test</button>
   </div>
-  
-  <button class="btn-apply" onclick="applyPID()">
-    ✓ Applica PID al Sistema
-  </button>
-  
-  <button class="btn-back" onclick="resetTest()">
-    🔄 Nuovo Test
-  </button>
+</div>
+
+<!-- STORICO TEST -->
+<div class="panel" id="historyPanel">
+  <h2>📋 Storico Autotuning</h2>
+  <div id="historyContent"><div class="history-empty">Caricamento...</div></div>
 </div>
 
 <script>
@@ -382,66 +335,95 @@ canvas {
 let chart = null;
 let updateInterval = null;
 let testRunning = false;
+let testTemperature = 200;
+
+// ==================== PRESET TEMPERATURA ====================
+function setTemp(temp) {
+  testTemperature = temp;
+  document.getElementById('tempInput').value = temp;
+  // Aggiorna preset attivo
+  document.querySelectorAll('.temp-presets button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  updateRelayInfo(temp);
+}
+
+function updateRelayInfo(temp) {
+  let relayHigh, hyst;
+  if (temp <= 200) { relayHigh = 15; hyst = 3; }
+  else if (temp <= 400) { relayHigh = 20; hyst = 4; }
+  else if (temp <= 600) { relayHigh = 25; hyst = 5; }
+  else { relayHigh = 30; hyst = 6; }
+  document.getElementById('relayRange').textContent = `0% ↔ ${relayHigh}%`;
+  document.getElementById('relayHyst').textContent = `±${hyst}°C`;
+}
+
+document.getElementById('tempInput').addEventListener('change', function() {
+  testTemperature = parseInt(this.value) || 200;
+  document.querySelectorAll('.temp-presets button').forEach(b => b.classList.remove('active'));
+  updateRelayInfo(testTemperature);
+});
 
 // ==================== AVVIO TEST ====================
 function startAutotuning() {
-  if (confirm('Avviare test autotuning a 500°C?\nDurata: 20-30 minuti')) {
-    
-    fetch('/api/autotuning/start', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({temperature: 500})
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.success) {
-        testRunning = true;
-        
-        // Mostra pannelli
-        document.getElementById('btnStart').classList.add('hide');
-        document.getElementById('btnStop').classList.remove('hide');
-        document.getElementById('warningBox').classList.remove('hide');
-        document.getElementById('statusPanel').classList.remove('hide');
-        document.getElementById('chartPanel').classList.remove('hide');
-        
-        // Avvia update loop
-        startUpdateLoop();
-        
-        console.log('✅ Autotuning avviato');
-      } else {
-        alert('Errore avvio: ' + data.error);
-      }
-    })
-    .catch(err => {
-      console.error('Errore:', err);
-      alert('Errore comunicazione server');
-    });
+  const temp = parseInt(document.getElementById('tempInput').value) || 200;
+  testTemperature = temp;
+
+  if (temp < 100 || temp > 1200) {
+    alert('Temperatura deve essere tra 100°C e 1200°C');
+    return;
   }
+
+  if (!confirm(`Avviare autotuning a ${temp}°C?\nIl forno verrà portato a ${temp}°C.`)) return;
+
+  fetch('/api/autotuning/start', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({temperature: temp})
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      testRunning = true;
+      document.getElementById('btnStart').classList.add('hide');
+      document.getElementById('btnStop').classList.remove('hide');
+      document.getElementById('warningBox').classList.remove('hide');
+      document.getElementById('warningBox').innerHTML =
+        `⚠️ <strong>ATTENZIONE:</strong> Il forno raggiungerà ${temp}°C. Non lasciare incustodito.`;
+      document.getElementById('statusPanel').classList.remove('hide');
+      document.getElementById('chartPanel').classList.remove('hide');
+      // Disabilita input durante test
+      document.getElementById('tempInput').disabled = true;
+      document.querySelectorAll('.temp-presets button').forEach(b => b.disabled = true);
+      startUpdateLoop();
+    } else {
+      alert('Errore: ' + data.error);
+    }
+  })
+  .catch(() => alert('Errore comunicazione server'));
 }
 
 function stopAutotuning() {
-  if (confirm('Fermare il test?')) {
-    fetch('/api/autotuning/stop', {method: 'POST'})
-      .then(r => r.json())
-      .then(data => {
-        testRunning = false;
-        stopUpdateLoop();
-        console.log('⏹️ Test fermato');
-      });
-  }
+  if (!confirm('Fermare il test?')) return;
+  fetch('/api/autotuning/stop', {method: 'POST'})
+    .then(r => r.json())
+    .then(() => {
+      testRunning = false;
+      stopUpdateLoop();
+      document.getElementById('btnStart').classList.remove('hide');
+      document.getElementById('btnStop').classList.add('hide');
+      document.getElementById('tempInput').disabled = false;
+      document.querySelectorAll('.temp-presets button').forEach(b => b.disabled = false);
+    });
 }
 
 // ==================== UPDATE LOOP ====================
 function startUpdateLoop() {
   updateStatus();
-  updateInterval = setInterval(updateStatus, 2000);  // Ogni 2s
+  updateInterval = setInterval(updateStatus, 2000);
 }
 
 function stopUpdateLoop() {
-  if (updateInterval) {
-    clearInterval(updateInterval);
-    updateInterval = null;
-  }
+  if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
 }
 
 function updateStatus() {
@@ -451,46 +433,53 @@ function updateStatus() {
     .then(data => {
       document.getElementById('temp-current').textContent = data.hot.toFixed(1);
     });
-  
+
   // Status autotuning
   fetch('/api/autotuning/status')
     .then(r => r.json())
     .then(data => {
-      // LED e testo
       const led = document.getElementById('statusLed');
       const text = document.getElementById('statusText');
-      
+      const temp = data.test_temperature || testTemperature;
+
       if (data.phase === 'heating') {
         led.className = 'status-led wait';
-        text.textContent = 'Riscaldamento a 500°C...';
+        text.textContent = `Riscaldamento a ${temp}°C...`;
       } else if (data.phase === 'relay') {
         led.className = 'status-led on';
-        text.textContent = 'Test relay in corso...';
+        text.textContent = `Test relay a ${temp}°C in corso...`;
       } else if (data.phase === 'complete') {
         led.className = 'status-led on';
-        text.textContent = 'Test completato!';
+        text.textContent = `Test a ${temp}°C completato!`;
         stopUpdateLoop();
         showResults();
+      } else if (data.phase === 'error') {
+        led.className = 'status-led';
+        led.style.background = '#ff4444';
+        text.textContent = 'Errore nel test';
+        stopUpdateLoop();
       }
-      
+
       // Progress
       const progress = data.progress || 0;
       document.getElementById('progressFill').style.width = progress + '%';
       document.getElementById('progressText').textContent = progress.toFixed(0) + '%';
-      
-      // Info fase
+
+      // Info
       document.getElementById('phaseText').textContent = data.phase;
-      document.getElementById('oscillationsText').textContent = 
+      document.getElementById('oscillationsText').textContent =
         `${data.oscillations} / ${data.required_oscillations}`;
-      
+
       const duration = Math.floor(data.duration || 0);
-      const mins = Math.floor(duration / 60);
+      const hrs = Math.floor(duration / 3600);
+      const mins = Math.floor((duration % 3600) / 60);
       const secs = duration % 60;
-      document.getElementById('durationText').textContent = 
-        `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
-      
-      // Aggiorna grafico
-      if (data.phase === 'relay' || data.phase === 'complete') {
+      document.getElementById('durationText').textContent =
+        hrs > 0 ? `${hrs}h ${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`
+                 : `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+
+      // Grafico
+      if (data.phase === 'relay' || data.phase === 'heating' || data.phase === 'complete') {
         updateChart();
       }
     })
@@ -503,71 +492,48 @@ function updateChart() {
     .then(r => r.json())
     .then(data => {
       const temps = data.temperatures || [];
-      const setpoint = data.setpoint || 500;
-      
-      // Prepara dati
+      const setpoint = data.setpoint || testTemperature;
+
       const chartData = temps.map(t => ({x: t.time, y: t.temp}));
       const setpointLine = temps.length > 0 ? [
         {x: temps[0].time, y: setpoint},
         {x: temps[temps.length-1].time, y: setpoint}
       ] : [];
-      
+
       if (!chart) {
-        // Crea grafico
         const ctx = document.getElementById('chart').getContext('2d');
         chart = new Chart(ctx, {
           type: 'line',
           data: {
             datasets: [
               {
-                label: 'Temperatura',
-                data: chartData,
-                borderColor: '#ff6b6b',
-                backgroundColor: 'rgba(255,107,107,0.1)',
-                borderWidth: 2,
-                pointRadius: 0,
-                tension: 0.4
+                label: 'Temperatura', data: chartData,
+                borderColor: '#ff6b6b', backgroundColor: 'rgba(255,107,107,0.1)',
+                borderWidth: 2, pointRadius: 0, tension: 0.4
               },
               {
-                label: 'Setpoint',
-                data: setpointLine,
-                borderColor: '#4ecdc4',
-                borderDash: [5, 5],
-                borderWidth: 2,
-                pointRadius: 0
+                label: `Setpoint ${setpoint}°C`, data: setpointLine,
+                borderColor: '#4ecdc4', borderDash: [5, 5],
+                borderWidth: 2, pointRadius: 0
               }
             ]
           },
           options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             scales: {
-              x: {
-                type: 'linear',
-                title: {display: true, text: 'Tempo (s)', color: '#eee'},
-                ticks: {color: '#aaa'},
-                grid: {color: 'rgba(255,255,255,0.1)'}
-              },
-              y: {
-                title: {display: true, text: 'Temperatura (°C)', color: '#eee'},
-                ticks: {color: '#aaa'},
-                grid: {color: 'rgba(255,255,255,0.1)'}
-              }
+              x: { type: 'linear', title: {display:true, text:'Tempo (s)', color:'#eee'}, ticks:{color:'#aaa'}, grid:{color:'rgba(255,255,255,0.1)'} },
+              y: { title: {display:true, text:'°C', color:'#eee'}, ticks:{color:'#aaa'}, grid:{color:'rgba(255,255,255,0.1)'} }
             },
             plugins: {
-              legend: {labels: {color: '#eee'}},
-              tooltip: {
-                callbacks: {
-                  label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}°C`
-                }
-              }
+              legend: {labels:{color:'#eee'}},
+              tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}°C` }}
             }
           }
         });
       } else {
-        // Aggiorna dati
         chart.data.datasets[0].data = chartData;
         chart.data.datasets[1].data = setpointLine;
+        chart.data.datasets[1].label = `Setpoint ${setpoint}°C`;
         chart.update('none');
       }
     });
@@ -575,33 +541,80 @@ function updateChart() {
 
 // ==================== RISULTATI ====================
 function showResults() {
-  fetch('/api/autotuning/results')
-    .then(r => r.json())
-    .then(data => {
-      if (!data) return;
-      
-      // Parametri misurati
-      document.getElementById('resultKu').textContent = data.Ku.toFixed(3);
-      document.getElementById('resultPu').textContent = data.Pu.toFixed(1);
-      document.getElementById('resultAmplitude').textContent = data.amplitude.toFixed(1);
-      
-      // PID conservativi
-      document.getElementById('resultKp').textContent = data.Kp_conservative.toFixed(4);
-      document.getElementById('resultKi').textContent = data.Ki_conservative.toFixed(6);
-      document.getElementById('resultKd').textContent = '0.0000';
-      
-      // Mostra pannello risultati
-      document.getElementById('resultsPanel').classList.remove('hide');
-      document.getElementById('statusPanel').classList.add('hide');
-    });
+  // Carica risultati autotuning E PID attuali in parallelo
+  Promise.all([
+    fetch('/api/autotuning/results').then(r => r.json()),
+    fetch('/api/pid/tunings').then(r => r.json())
+  ])
+  .then(([results, current]) => {
+    if (!results || results.error) return;
+
+    const temp = results.test_temperature || testTemperature;
+    document.getElementById('resultTemp').textContent = temp;
+    document.getElementById('resultKu').textContent = results.Ku.toFixed(3);
+    document.getElementById('resultPu').textContent = results.Pu.toFixed(1);
+    document.getElementById('resultAmplitude').textContent = results.amplitude.toFixed(1);
+
+    // PID proposti (conservativi)
+    const newKp = results.Kp_conservative;
+    const newKi = results.Ki_conservative;
+    const newKd = results.Kd_conservative || 0;
+
+    document.getElementById('resultKp').textContent = newKp.toFixed(4);
+    document.getElementById('resultKi').textContent = newKi.toFixed(6);
+    document.getElementById('resultKd').textContent = newKd.toFixed(4);
+
+    // PID attuali dal sistema
+    const curKp = current.kp || 0;
+    const curKi = current.ki || 0;
+    const curKd = current.kd || 0;
+
+    document.getElementById('currentKp').textContent = curKp.toFixed(4);
+    document.getElementById('currentKi').textContent = curKi.toFixed(6);
+    document.getElementById('currentKd').textContent = curKd.toFixed(4);
+
+    // Calcola e mostra delta
+    showDelta('deltaKp', curKp, newKp);
+    showDelta('deltaKi', curKi, newKi);
+    showDelta('deltaKd', curKd, newKd);
+
+    document.getElementById('resultsPanel').classList.remove('hide');
+    document.getElementById('statusPanel').classList.add('hide');
+
+    loadHistory();
+  });
+}
+
+function showDelta(elementId, oldVal, newVal) {
+  const el = document.getElementById(elementId);
+  if (oldVal === 0 && newVal === 0) {
+    el.textContent = '—';
+    el.className = 'delta-same';
+    return;
+  }
+  if (oldVal === 0) {
+    el.textContent = 'nuovo';
+    el.className = 'delta-up';
+    return;
+  }
+  const pct = ((newVal - oldVal) / oldVal) * 100;
+  const sign = pct > 0 ? '+' : '';
+  el.textContent = `${sign}${pct.toFixed(0)}%`;
+  if (Math.abs(pct) < 5) {
+    el.className = 'delta-same';
+  } else if (Math.abs(pct) > 50) {
+    el.className = 'delta-up';  // Cambiamento drastico → rosso (attenzione)
+  } else {
+    el.className = 'delta-down';  // Cambiamento moderato → verde (ok)
+  }
 }
 
 function applyPID() {
   const kp = parseFloat(document.getElementById('resultKp').textContent);
   const ki = parseFloat(document.getElementById('resultKi').textContent);
   const kd = parseFloat(document.getElementById('resultKd').textContent);
-  
-  if (confirm(`Applicare PID al sistema?\nKp=${kp}, Ki=${ki}, Kd=${kd}`)) {
+
+  if (confirm(`Applicare PID?\nKp=${kp}, Ki=${ki}, Kd=${kd}`)) {
     fetch('/api/pid/apply', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -609,26 +622,75 @@ function applyPID() {
     })
     .then(r => r.json())
     .then(data => {
-      if (data.success) {
-        alert('✅ PID applicato con successo!');
-      } else {
-        alert('Errore applicazione PID');
-      }
+      alert(data.success ? '✅ PID applicato!' : 'Errore applicazione');
     });
   }
 }
 
 function resetTest() {
-  if (confirm('Iniziare nuovo test?')) {
-    location.reload();
-  }
+  if (confirm('Nuovo test?')) location.reload();
+}
+
+// ==================== STORICO ====================
+function loadHistory() {
+  fetch('/api/autotuning/history')
+    .then(r => r.json())
+    .then(history => {
+      const container = document.getElementById('historyContent');
+
+      if (!history || history.length === 0) {
+        container.innerHTML = '<div class="history-empty">Nessun test effettuato</div>';
+        return;
+      }
+
+      // Ordina per data (più recente prima)
+      history.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      let html = `<table class="history-table">
+        <thead><tr>
+          <th>Data</th><th>Temp</th><th>Ku</th><th>Pu</th>
+          <th>Ampl</th><th>Kp</th><th>Ki</th><th>Durata</th>
+        </tr></thead><tbody>`;
+
+      for (const h of history) {
+        const date = new Date(h.date);
+        const dateStr = date.toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit', year:'2-digit'});
+        const timeStr = date.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+        const puMin = h.Pu_min || (h.Pu / 60);
+
+        html += `<tr>
+          <td>${dateStr} ${timeStr}</td>
+          <td style="color:var(--accent-hot); font-weight:700;">${h.temperature}°C</td>
+          <td>${h.Ku.toFixed(3)}</td>
+          <td>${h.Pu.toFixed(0)}s <span style="color:var(--text-muted)">(${puMin.toFixed(1)}m)</span></td>
+          <td>${h.amplitude.toFixed(1)}°C</td>
+          <td style="color:var(--accent-cold)">${h.pid_kp.toFixed(4)}</td>
+          <td style="color:var(--accent-cold)">${h.pid_ki.toFixed(6)}</td>
+          <td>${h.duration_min.toFixed(0)} min</td>
+        </tr>`;
+      }
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    })
+    .catch(() => {
+      document.getElementById('historyContent').innerHTML =
+        '<div class="history-empty">Errore caricamento storico</div>';
+    });
 }
 
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🎯 Autotuning interface loaded');
+  updateRelayInfo(200);
+  loadHistory();
+  // Update temperatura ogni 5s
+  setInterval(() => {
+    fetch('/api/temperatures')
+      .then(r => r.json())
+      .then(data => { document.getElementById('temp-current').textContent = data.hot.toFixed(1); })
+      .catch(() => {});
+  }, 5000);
 });
 </script>
-
 </body>
 </html>

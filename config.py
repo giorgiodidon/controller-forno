@@ -89,6 +89,16 @@ TEMP_SMOOTHING_WINDOW = 5       # numero letture per media mobile (5 × 2s = 10s
 RAMP_TOLERANCE = 10             # °C - target raggiunto se entro questa tolleranza
 HOLD_TOLERANCE = 15             # °C - timer hold avanza solo se entro tolleranza
 
+# Rate limiter valvola — protezione anti-oscillazione
+# Limita il salto massimo della valvola per ogni ciclo PID.
+# Con 5% per ciclo e ciclo di 30s, la valvola impiega ~10 minuti
+# per andare da 0% a 100%. Questo protegge da:
+# - PID non ancora tarato (parametri default aggressivi)
+# - Disturbi improvvisi (apertura porta, cambio pressione gas)
+# - Shock termici sulla ceramica
+# Dopo autotuning, si può aumentare se il sistema è stabile.
+VALVE_MAX_STEP_PER_CYCLE = 5    # % massimo di variazione valvola per ciclo PID
+
 # ===== WATCHDOG =====
 WATCHDOG_INTERVAL = 5           # secondi - controllo watchdog
 WATCHDOG_SENSOR_TIMEOUT = 30    # secondi - tempo max senza lettura sensore valida

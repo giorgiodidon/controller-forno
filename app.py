@@ -43,6 +43,9 @@ storage = StorageService()
 # Watchdog (monitor sicurezza indipendente)
 watchdog = Watchdog(actuators, notifications)
 
+# Collega DataLogger all'autotuner per log completi
+autotuner.set_data_logger(logger)
+
 print("✅ Tutti i componenti inizializzati")
 print("="*60)
 
@@ -520,22 +523,32 @@ def autotuning_page():
 
 @app.route('/api/autotuning/start', methods=['POST'])
 def start_autotuning():
-    """Avvia test autotuning"""
+    """Avvia test autotuning a temperatura specificata"""
     if runner.is_running:
         return jsonify({'success': False, 'error': 'Impossibile: programma in esecuzione'})
+    if autotuner.is_running:
+        return jsonify({'success': False, 'error': 'Autotuning già in corso'})
     try:
         data = request.json or {}
-        temperature = data.get('temperature', 500)
+        temperature = int(data.get('temperature', 500))
+        
+        # Validazione temperatura
+        if temperature < 100:
+            return jsonify({'success': False, 'error': 'Temperatura minima: 100°C'})
+        if temperature > 1200:
+            return jsonify({'success': False, 'error': 'Temperatura massima: 1200°C'})
+        
         autotuner.test_temperature = temperature
         autotuner.setpoint = temperature
         autotuner.start()
+        
         notifications.send(
             "Autotuning Avviato",
             f"Test PID a {temperature}°C in corso...",
             priority="high",
             tags=["gear"]
         )
-        return jsonify({'success': True, 'message': 'Autotuning avviato'})
+        return jsonify({'success': True, 'message': f'Autotuning a {temperature}°C avviato'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
@@ -570,6 +583,12 @@ def get_autotuning_results():
 def get_autotuning_chart_data():
     """Dati per grafico oscillazioni"""
     return jsonify(autotuner.get_chart_data())
+
+
+@app.route('/api/autotuning/history')
+def get_autotuning_history():
+    """Storico di tutti i test autotuning effettuati"""
+    return jsonify(autotuner.get_history())
 
 
 # ===== CLEANUP =====

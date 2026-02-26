@@ -34,9 +34,13 @@ class PIDController:
         self.integral_max = PID_INTEGRAL_MAX
         self.integral_min = PID_INTEGRAL_MIN
         
-        # Statistiche
+        # Stato ultimo calcolo — per log, diagnostica, ML
         self.last_output = 0.0
         self.last_error = 0.0
+        self.last_p_term = 0.0
+        self.last_i_term = 0.0
+        self.last_d_term = 0.0
+        self.last_dt = 0.0
         
     def compute(self, setpoint, current_value):
         """
@@ -77,19 +81,47 @@ class PIDController:
         # Limita output 0-100%
         output = max(0, min(100, output))
         
-        # Salva per prossima iterazione
+        # Salva tutto per diagnostica, log e ML
         self.prev_error = error
         self.prev_time = now
         self.last_output = output
         self.last_error = error
+        self.last_p_term = p_term
+        self.last_i_term = i_term
+        self.last_d_term = d_term
+        self.last_dt = dt
         
         return output
+    
+    def get_terms(self):
+        """
+        Ritorna i termini dell'ultimo calcolo PID.
+        Per logging, diagnostica, ML e PID adattivo.
+        
+        Returns:
+            dict: {p, i, d, error, output, integral, dt, kp, ki, kd}
+        """
+        return {
+            'p': round(self.last_p_term, 3),
+            'i': round(self.last_i_term, 3),
+            'd': round(self.last_d_term, 3),
+            'error': round(self.last_error, 2),
+            'output': round(self.last_output, 1),
+            'integral': round(self.integral, 2),
+            'dt': round(self.last_dt, 2),
+            'kp': self.kp,
+            'ki': self.ki,
+            'kd': self.kd
+        }
     
     def reset(self):
         """Reset stato PID (chiamare quando si cambia setpoint)"""
         self.integral = 0.0
         self.prev_error = 0.0
         self.prev_time = time.time()
+        self.last_p_term = 0.0
+        self.last_i_term = 0.0
+        self.last_d_term = 0.0
         print("🔄 PID reset")
     
     def set_tunings(self, kp, ki, kd):
@@ -120,5 +152,8 @@ class PIDController:
             'kd': self.kd,
             'integral': round(self.integral, 2),
             'last_error': round(self.last_error, 2),
-            'last_output': round(self.last_output, 1)
+            'last_output': round(self.last_output, 1),
+            'last_p': round(self.last_p_term, 3),
+            'last_i': round(self.last_i_term, 3),
+            'last_d': round(self.last_d_term, 3)
         }

@@ -7,21 +7,21 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
-  --bg-primary: #1e1e1e;
-  --bg-secondary: #2a2a2a;
-  --bg-tertiary: #333;
-  --bg-input: #3a3a3a;
-  --accent-hot: #ff6b6b;
-  --accent-cold: #4ecdc4;
-  --accent-delta: #9370db;
-  --accent-green: #32cd32;
-  --accent-orange: #ff8c00;
-  --accent-blue: #4169e1;
-  --text-primary: #eee;
-  --text-secondary: #aaa;
-  --text-muted: #888;
-  --border-color: #555;
-  --warning: #ff9e6d;
+  --bg-primary: #f2f2f5;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f0f0f3;
+  --bg-input: #e8e8ec;
+  --accent-hot: #d42000;
+  --accent-cold: #0e8a8a;
+  --accent-delta: #7040cc;
+  --accent-green: #1a8f2e;
+  --accent-orange: #c47600;
+  --accent-blue: #2a6cb8;
+  --text-primary: #1a1a1a;
+  --text-secondary: #555;
+  --text-muted: #777;
+  --border-color: #c8c8d0;
+  --warning: #c47600;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
@@ -40,7 +40,7 @@ h2 { font-size: clamp(18px, 4.5vw, 24px); margin-bottom: 12px; }
 .panel {
   background: var(--bg-secondary); padding: 15px;
   border-radius: 12px; margin-bottom: 15px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 .temp-panel {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -63,12 +63,12 @@ button {
 }
 button:active { transform: scale(0.97); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-start { background: var(--accent-green); color: #000; }
-.btn-stop { background: var(--accent-orange); color: #000; }
-.btn-apply { background: var(--accent-blue); }
+.btn-start { background: var(--accent-green); color: #fff; }
+.btn-stop { background: var(--accent-orange); color: #fff; }
+.btn-apply { background: var(--accent-blue); color: #fff; }
 .btn-back { background: var(--bg-tertiary); }
 .canvas-container { position: relative; height: 350px; width: 100%; margin-top: 15px; }
-canvas { background: #1a1a1a; border-radius: 10px; width: 100%!important; height: 100%!important; }
+canvas { background: #f7f7fa; border-radius: 10px; width: 100%!important; height: 100%!important; }
 .status-bar {
   background: var(--bg-tertiary); padding: 12px 15px; border-radius: 10px;
   margin-top: 15px; display: flex; flex-wrap: wrap; align-items: center;
@@ -117,7 +117,7 @@ canvas { background: #1a1a1a; border-radius: 10px; width: 100%!important; height
   background: var(--bg-tertiary); border: 1px solid var(--border-color);
 }
 .temp-presets button:hover { border-color: var(--accent-cold); }
-.temp-presets button.active { background: var(--accent-cold); color: #000; border-color: var(--accent-cold); }
+.temp-presets button.active { background: var(--accent-cold); color: #fff; border-color: var(--accent-cold); }
 
 /* Relay info chips */
 .relay-info {
@@ -135,8 +135,8 @@ canvas { background: #1a1a1a; border-radius: 10px; width: 100%!important; height
   text-align: left; padding: 8px; border-bottom: 1px solid var(--border-color);
   color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
 }
-.history-table td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-.history-table tr:hover { background: rgba(78,205,196,0.05); }
+.history-table td { padding: 8px; border-bottom: 1px solid rgba(0,0,0,0.06); }
+.history-table tr:hover { background: rgba(14,138,138,0.06); }
 .history-empty { color: var(--text-muted); padding: 20px; text-align: center; font-style: italic; }
 
 /* Compare table */
@@ -151,7 +151,7 @@ canvas { background: #1a1a1a; border-radius: 10px; width: 100%!important; height
 }
 .compare-table td {
   text-align: center; padding: 12px; font-size: 16px; font-weight: 600;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
 }
 .compare-label {
   text-align: left !important; font-size: 13px !important;
@@ -508,12 +508,12 @@ function updateChart() {
             datasets: [
               {
                 label: 'Temperatura', data: chartData,
-                borderColor: '#ff6b6b', backgroundColor: 'rgba(255,107,107,0.1)',
+                borderColor: '#d42000', backgroundColor: 'rgba(212,32,0,0.08)',
                 borderWidth: 2, pointRadius: 0, tension: 0.4
               },
               {
                 label: `Setpoint ${setpoint}°C`, data: setpointLine,
-                borderColor: '#4ecdc4', borderDash: [5, 5],
+                borderColor: '#0e8a8a', borderDash: [5, 5],
                 borderWidth: 2, pointRadius: 0
               }
             ]
@@ -521,11 +521,11 @@ function updateChart() {
           options: {
             responsive: true, maintainAspectRatio: false,
             scales: {
-              x: { type: 'linear', title: {display:true, text:'Tempo (s)', color:'#eee'}, ticks:{color:'#aaa'}, grid:{color:'rgba(255,255,255,0.1)'} },
-              y: { title: {display:true, text:'°C', color:'#eee'}, ticks:{color:'#aaa'}, grid:{color:'rgba(255,255,255,0.1)'} }
+              x: { type: 'linear', title: {display:true, text:'Tempo (s)', color:'#333'}, ticks:{color:'#666'}, grid:{color:'rgba(0,0,0,0.08)'} },
+              y: { title: {display:true, text:'°C', color:'#333'}, ticks:{color:'#666'}, grid:{color:'rgba(0,0,0,0.08)'} }
             },
             plugins: {
-              legend: {labels:{color:'#eee'}},
+              legend: {labels:{color:'#333'}},
               tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}°C` }}
             }
           }

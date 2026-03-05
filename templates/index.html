@@ -11,23 +11,23 @@
 <style>
 /* ===== VARIABILI CSS ===== */
 :root {
-  --bg-primary: #1e1e1e;
-  --bg-secondary: #2a2a2a;
-  --bg-tertiary: #333;
-  --bg-input: #3a3a3a;
-  --accent-hot: #ff6b6b;
-  --accent-cold: #4ecdc4;
-  --accent-delta: #9370db;
-  --accent-green: #32cd32;
-  --accent-orange: #ff8c00;
-  --accent-blue: #4169e1;
-  --text-primary: #eee;
-  --text-secondary: #aaa;
-  --text-muted: #888;
-  --border-color: #555;
-  --warning: #ff9e6d;
-  --danger: #8b0000;
-  --danger-hover: #b22222;
+  --bg-primary: #f2f2f5;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f0f0f3;
+  --bg-input: #e8e8ec;
+  --accent-hot: #d42000;
+  --accent-cold: #0e8a8a;
+  --accent-delta: #7040cc;
+  --accent-green: #1a8f2e;
+  --accent-orange: #c47600;
+  --accent-blue: #2a6cb8;
+  --text-primary: #1a1a1a;
+  --text-secondary: #555;
+  --text-muted: #777;
+  --border-color: #c8c8d0;
+  --warning: #c47600;
+  --danger: #cc0000;
+  --danger-hover: #dd2222;
 }
 
 /* ===== RESET & BASE ===== */
@@ -79,7 +79,7 @@ h3 {
   padding: 15px;
   border-radius: 12px;
   margin-bottom: 15px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   transition: transform 0.2s;
 }
 
@@ -349,7 +349,7 @@ button:active {
 }
 
 canvas {
-  background: #1a1a1a;
+  background: #eaeaef;
   border-radius: 10px;
   display: block;
   width: 100% !important;
@@ -888,8 +888,8 @@ function drawCustomGrid(chartInstance) {
             line.style.top = y + 'px';
             line.style.width = (chartArea.right - chartArea.left) + 'px';
             line.style.height = '1px';
-            line.style.background = 'rgba(255,255,255,0.1)';
-            line.style.borderTop = '1px dashed rgba(255,255,255,0.1)';
+            line.style.background = 'rgba(0,0,0,0.06)';
+            line.style.borderTop = '1px dashed rgba(0,0,0,0.08)';
             gridContainer.appendChild(line);
             
             const label = document.createElement('div');
@@ -915,7 +915,7 @@ function drawCustomGrid(chartInstance) {
             line.style.top = chartArea.top + 'px';
             line.style.width = '1px';
             line.style.height = (chartArea.bottom - chartArea.top) + 'px';
-            line.style.background = time % 60 === 0 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)';
+            line.style.background = time % 60 === 0 ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.04)';
             gridContainer.appendChild(line);
             
             if (time % 60 === 0) {
@@ -1038,7 +1038,7 @@ function updateChart() {
                 },
                 plugins: {
                     tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.9)',
+                        backgroundColor: 'rgba(255,255,255,0.95)',
                         titleColor: '#ff6b6b',
                         bodyColor: '#eee',
                         borderColor: '#ff6b6b',
@@ -1430,7 +1430,7 @@ function exportChartImage() {
                         stepSize: 60
                     },
                     grid: {
-                        color: 'rgba(255,255,255,0.1)',
+                        color: 'rgba(0,0,0,0.08)',
                         lineWidth: 1
                     }
                 },
@@ -1449,7 +1449,7 @@ function exportChartImage() {
                         stepSize: 100
                     },
                     grid: {
-                        color: 'rgba(255,255,255,0.1)',
+                        color: 'rgba(0,0,0,0.08)',
                         lineWidth: 1
                     }
                 }

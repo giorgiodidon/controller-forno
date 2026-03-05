@@ -8,21 +8,21 @@
 <style>
 /* ===== VARIABILI ===== */
 :root {
-  --bg:       #0f0f0f;
-  --panel:    #181818;
-  --panel2:   #1f1f1f;
-  --border:   #272727;
-  --hot:      #ff4d2e;
-  --cold:     #3ecfcf;
-  --green:    #39d353;
-  --orange:   #ff9f1c;
-  --blue:     #4a90d9;
-  --purple:   #9b6dff;
-  --muted:    #555;
-  --dim:      #888;
-  --text:     #e4e4e4;
-  --danger-bg:#1a0000;
-  --danger-bd:#7a0000;
+  --bg:       #f2f2f5;
+  --panel:    #ffffff;
+  --panel2:   #f7f7fa;
+  --border:   #d0d0d8;
+  --hot:      #d42000;
+  --cold:     #0e8a8a;
+  --green:    #1a8f2e;
+  --orange:   #c47600;
+  --blue:     #2a6cb8;
+  --purple:   #7040cc;
+  --muted:    #999;
+  --dim:      #666;
+  --text:     #1a1a1a;
+  --danger-bg:#fff0f0;
+  --danger-bd:#cc0000;
 }
 
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -137,7 +137,7 @@ html, body {
 }
 .prog-list::-webkit-scrollbar { width: 4px; }
 .prog-list::-webkit-scrollbar-track { background: var(--border); border-radius: 2px; }
-.prog-list::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 2px; }
+.prog-list::-webkit-scrollbar-thumb { background: #c0c0c8; border-radius: 2px; }
 
 .prog-item {
   background: var(--panel2);
@@ -221,7 +221,7 @@ html, body {
 }
 .ramps-scroll::-webkit-scrollbar { width: 4px; }
 .ramps-scroll::-webkit-scrollbar-track { background: var(--border); border-radius: 2px; }
-.ramps-scroll::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 2px; }
+.ramps-scroll::-webkit-scrollbar-thumb { background: #c0c0c8; border-radius: 2px; }
 
 table.ramps-tbl {
   width: 100%;
@@ -241,8 +241,8 @@ table.ramps-tbl th {
   z-index: 1;
 }
 table.ramps-tbl td { padding: 4px 6px; vertical-align: middle; }
-table.ramps-tbl tr:nth-child(even) td { background: rgba(255,255,255,0.018); }
-table.ramps-tbl tr:hover td { background: rgba(255,255,255,0.03); }
+table.ramps-tbl tr:nth-child(even) td { background: rgba(0,0,0,0.03); }
+table.ramps-tbl tr:hover td { background: rgba(0,0,0,0.05); }
 
 .num-input {
   background: var(--panel2);
@@ -310,7 +310,7 @@ button:active { opacity: 0.75; }
   background: var(--panel2);
   color: var(--text);
 }
-.btn-sm:hover { border-color: #444; }
+.btn-sm:hover { border-color: #bbb; }
 
 .btn-green  { border: 1px solid var(--green)  !important; color: var(--green)  !important; background: rgba(57,211,83,0.05)   !important; }
 .btn-hot    { border: 1px solid var(--hot)    !important; color: var(--hot)    !important; background: rgba(255,77,46,0.06)   !important; }
@@ -348,15 +348,15 @@ button:active { opacity: 0.75; }
 #modal-overlay {
   display: none;
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.75);
+  background: rgba(0,0,0,0.2);
   z-index: 998;
   justify-content: center;
   align-items: center;
 }
 #modal-overlay.active { display: flex; }
 .modal-box {
-  background: #1c1c1c;
-  border: 1px solid #333;
+  background: #ffffff;
+  border: 1px solid #ccc;
   border-radius: 10px;
   padding: 28px 32px;
   min-width: 360px;
@@ -371,17 +371,17 @@ button:active { opacity: 0.75; }
 }
 .btn-confirm-yes { background: #8b0000; color: #fff; }
 .btn-confirm-yes:hover { background: #b22222; }
-.btn-confirm-no  { background: #2a2a2a; color: var(--text); border: 1px solid #444 !important; }
-.btn-confirm-no:hover { background: #333; }
-.btn-confirm-save { background: #1a5c2a; color: var(--green); border: 1px solid var(--green) !important; }
+.btn-confirm-no  { background: #e8e8ec; color: var(--text); border: 1px solid #bbb !important; }
+.btn-confirm-no:hover { background: #ddd; }
+.btn-confirm-save { background: #d4f5da; color: var(--green); border: 1px solid var(--green) !important; }
 
 /* Toast */
 #toast {
   position: fixed;
   bottom: 20px; left: 50%;
   transform: translateX(-50%) translateY(60px);
-  background: #2a2a2a;
-  border: 1px solid #444;
+  background: #f0f0f3;
+  border: 1px solid #bbb;
   border-radius: 8px;
   padding: 10px 20px;
   font-size: 13px;
@@ -411,7 +411,7 @@ button:active { opacity: 0.75; }
 
   <!-- BANNER ESECUZIONE — visibile solo se programma attivo -->
   <div id="running-banner" style="display:none;
-    background:#1a0800; border:1px solid #7a3800; border-radius:6px;
+    background:#fff4ec; border:1px solid #e8a060; border-radius:6px;
     padding:8px 16px; display:none; align-items:center; gap:10px;
     font-size:12px; color:#ff9f1c; flex-shrink:0;">
     <span style="font-size:16px;">⚠️</span>
@@ -1000,8 +1000,8 @@ function initPreviewChart() {
       layout: { padding: { top: 2, bottom: 2, left: 0, right: 4 } },
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
       scales: {
-        x: { type: 'linear', min: 0, ticks: { color: '#333', font: { size: 8 }, maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,0.03)' } },
-        y: { min: 0, ticks: { color: '#333', font: { size: 8 }, maxTicksLimit: 6  }, grid: { color: 'rgba(255,255,255,0.03)' } }
+        x: { type: 'linear', min: 0, ticks: { color: '#666', font: { size: 8 }, maxTicksLimit: 10 }, grid: { color: 'rgba(0,0,0,0.08)' } },
+        y: { min: 0, ticks: { color: '#666', font: { size: 8 }, maxTicksLimit: 6  }, grid: { color: 'rgba(0,0,0,0.08)' } }
       }
     }
   });

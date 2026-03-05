@@ -8,20 +8,20 @@
 <style>
 /* ===== VARIABILI ===== */
 :root {
-  --bg:        #0f0f0f;
-  --panel:     #181818;
-  --panel2:    #1f1f1f;
-  --border:    #272727;
-  --hot:       #ff4d2e;
-  --cold:      #3ecfcf;
-  --green:     #39d353;
-  --orange:    #ff9f1c;
-  --blue:      #4a90d9;
-  --muted:     #555;
-  --dim:       #888;
-  --text:      #e4e4e4;
-  --danger-bg: #1a0000;
-  --danger-bd: #7a0000;
+  --bg:        #f2f2f5;
+  --panel:     #ffffff;
+  --panel2:    #f7f7fa;
+  --border:    #d0d0d8;
+  --hot:       #d42000;
+  --cold:      #0e8a8a;
+  --green:     #1a8f2e;
+  --orange:    #c47600;
+  --blue:      #2a6cb8;
+  --muted:     #999;
+  --dim:       #666;
+  --text:      #1a1a1a;
+  --danger-bg: #fff0f0;
+  --danger-bd: #cc0000;
 }
 
 /* ===== RESET ===== */
@@ -232,7 +232,7 @@ body.desktop { width:1024px; height:600px; overflow:hidden; }
   background:var(--danger-bg); border:2px solid var(--danger-bd);
   color:#ff3333; font-size:15px; text-transform:uppercase;
 }
-.btn-stop:hover  { background:#240000; border-color:#ff3333; }
+.btn-stop:hover  { background:#ffe0e0; border-color:#cc0000; }
 .btn-stop:active { background:#300000; }
 
 .btn-page {
@@ -240,7 +240,7 @@ body.desktop { width:1024px; height:600px; overflow:hidden; }
   color:var(--text); font-size:14px;
 }
 .btn-page:hover  { border-color:var(--hot); color:var(--hot); }
-.btn-page:active { background:#1a1a1a; }
+.btn-page:active { background:#e0e0e5; }
 
 .btn-lock {
   background:var(--panel); border:1px solid var(--border);
@@ -282,7 +282,7 @@ body.desktop { width:1024px; height:600px; overflow:hidden; }
     position:fixed; bottom:0; left:0; right:0;
     height:64px !important; display:flex;
     gap:6px; padding:8px 10px;
-    background:#111; border-top:1px solid var(--border); z-index:100;
+    background:#f2f2f5; border-top:1px solid var(--border); z-index:100;
   }
 
   /* Pannello temperatura */
@@ -339,7 +339,7 @@ body.desktop { width:1024px; height:600px; overflow:hidden; }
    ============================================================ */
 #lock-overlay {
   display:none; position:fixed; inset:0;
-  background:rgba(0,0,0,0.92); z-index:999;
+  background:rgba(0,0,0,0.3); z-index:999;
   justify-content:center; align-items:center;
   flex-direction:column; gap:16px;
 }
@@ -350,12 +350,12 @@ body.desktop { width:1024px; height:600px; overflow:hidden; }
 
 #modal-overlay {
   display:none; position:fixed; inset:0;
-  background:rgba(0,0,0,0.75); z-index:998;
+  background:rgba(0,0,0,0.2); z-index:998;
   justify-content:center; align-items:center;
 }
 #modal-overlay.active { display:flex; }
 .modal-box {
-  background:#1c1c1c; border:1px solid #333; border-radius:10px;
+  background:#ffffff; border:1px solid #ccc; border-radius:10px;
   padding:28px 32px; min-width:300px; max-width:90vw; text-align:center;
 }
 .modal-box h3 { font-size:18px; margin-bottom:10px; }
@@ -367,7 +367,7 @@ body.desktop { width:1024px; height:600px; overflow:hidden; }
 }
 .btn-confirm-yes { background:#8b0000; color:#fff; }
 .btn-confirm-yes:hover { background:#b22222; }
-.btn-confirm-no  { background:#2a2a2a; color:var(--text); border:1px solid #444 !important; }
+.btn-confirm-no  { background:#e8e8ec; color:var(--text); border:1px solid #bbb !important; }
 
 @media (max-width:768px) {
   .modal-box { padding:22px 20px; }
@@ -882,8 +882,8 @@ function initChart() {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: 'rgba(0,0,0,0.85)', titleColor: '#ff4d2e',
-          bodyColor: '#ddd', borderColor: '#333', borderWidth: 1,
+          backgroundColor: 'rgba(255,255,255,0.95)', titleColor: '#d42000',
+          bodyColor: '#333', borderColor: '#ddd', borderWidth: 1,
           callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}°C` }
         }
       },
@@ -892,13 +892,13 @@ function initChart() {
           type: 'linear', min: 0,
           title: { display:true, text:'minuti', color:'#444', font:{size:10} },
           ticks: { color:'#444', font:{size:9}, maxTicksLimit:12 },
-          grid:  { color:'rgba(255,255,255,0.04)' }
+          grid:  { color:'rgba(0,0,0,0.08)' }
         },
         y: {
           min: 0,
           title: { display:true, text:'°C', color:'#444', font:{size:10} },
           ticks: { color:'#444', font:{size:9}, maxTicksLimit:8 },
-          grid:  { color:'rgba(255,255,255,0.04)' }
+          grid:  { color:'rgba(0,0,0,0.08)' }
         }
       }
     }
